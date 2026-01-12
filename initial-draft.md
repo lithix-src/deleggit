@@ -1,0 +1,18 @@
+Issue-prompted coding agent workflows.
+
+Who is the user?  Any developer of any depth of experience in their problem domain, capable of describing a problem or use-case, the guardrails a coding agent should follow, rules for testing and validation of code changes. 
+
+The primary goal of this platform is to move AI-assisted coding from the developer's editor (IDE) into a ticketing/issue management workflow. This allows non-developers or early-career developers to leverage AI-assisted code workflows, following standard open-source workflows related to issue management. Additionally, this allows open source projects to integrate AI-assisted coding for bug-fix workflows, enabling users (not project developers) to report bugs, and have an AI-generated fix prepared automatically, which project maintainers can review, modify, and integrate rapidly.
+
+The agents should by default compose all needful code modules following best practices within that language context, and following guidelines from the developer. Agents should not commit to main or master branches by default. 
+
+
+Scenario: existing project.  A developer creates a profile on our platform, and enters the URL to their Git repository, on GitHub or GitLab.  An agent watches the repository for new issues that have a comment with annotation (suffix) like /ai.  Another user creates an issue, describing a bug, and comments using the "/ai" annotation, allowing the agent to proceed on that issue. Agent attempts to parse the bug report, and implement a test to identify the bug, which would initially fail. Agent iterates on the codebase to attempt to fix the bug, making the test pass.  When all tests pass, the agent pushes its code revision to a branch and opens a Pull Request (or Merge Request, on GitLab), with the updated tests and application code, for human review.  Developer then reviews the changes, and if acceptable, merges them.
+
+Scenario: new project.  A developer creates a Git repository (presumably on GitHub, maybe GitLab), and provides the repository URL to their profile, on this platform. Agent begins watching the repository, as above. Developer opens the first issue, describing the testing guidelines, and any constraints the agent must respect within that code base. Agent translates this into a "rules.ai.txt" file, and prepares a Pull Request with that file change. Developer reviews and merges the rules update. Developer opens a second issue, describing the use-case they want to fulfill for their users/customers, functional requirements, and constraints the agents must follow when drafting the initial code structure. For example:
+Customer wishes to manage their music collection, which is hosted on an S3-compatible storage service, and stream it to smart speakers in their local network. Smart speakers can be controlled through DLNA, and stream music through the web service. Smart speakers in the local network can be discovered using mDNS. The web service should provide a restful web API, and have a web browser UI. The web service should allow multiple distributed service replicas in the same network to synchronize data, to allow load balancing and failover if one instance fails.
+Use the Go programming language for the web service backend.
+Use a SQLite database for persistent data storage in the web service backend.
+Use MQTT protocol between web service instances, for distribution of music library records, remote S3 credentials and connection information, and control of local-network smart speakers.
+Write mocks for all external dependencies, and integration tests representing the primary use-cases, which exercise at least 85% of the back-end service code.
+
