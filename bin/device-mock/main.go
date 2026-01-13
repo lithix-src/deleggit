@@ -74,20 +74,7 @@ func main() {
 		}
 	}()
 
-	// 3. Repo Event Loop (Simulated Bridge to Real URLs)
-	go func() {
-		repos := []string{"catalyst/ui", "catalyst/core", "catalyst/infra"}
-		for {
-			time.Sleep(time.Duration(rand.Intn(10000)+5000) * time.Millisecond)
-			repo := repos[rand.Intn(len(repos))]
-			issueID := rand.Intn(1000) + 1
-			emit(client, "repo/issue/new", "repo.issue.new", map[string]interface{}{
-				"repo":  repo,
-				"id":    issueID,
-				"title": fmt.Sprintf("Anomaly detected in %s module", repo),
-			})
-		}
-	}()
+	// 3. Repo Event Loop - REMOVED (Handled by dedicated repo-watcher service)
 
 	select {} // Block forever
 }

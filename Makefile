@@ -33,15 +33,20 @@ clean:
 	-taskkill /F /IM device-mock.exe 2>NUL || echo "Mock was not running"
 
 # Start the full development stack
-dev: clean build-mock
+dev: clean build-mock build-watcher
 	@echo "Starting Catalyst Stack..."
 	@start "Catalyst Mock" cmd /c "bin\device-mock\device-mock.exe"
+	@start "Repo Watcher" cmd /c "bin\repo-watcher\repo-watcher.exe"
 	@cd ui && start "Catalyst UI" cmd /c "npm run dev"
 	@echo "Stack launched! UI: http://localhost:5173"
 
 # Build the Device Mock binary
 build-mock:
 	cd bin/device-mock && go build -o device-mock.exe main.go
+
+# Build the Repo Watcher binary
+build-watcher:
+	cd bin/repo-watcher && go build -o repo-watcher.exe main.go
 
 # Start only the UI
 ui:
