@@ -1,11 +1,11 @@
 # Catalyst
 > **The Autonomous Open Source Maintenance Platform.**
 
-> 🚧 **Catalyst is currently in PRE-ALPHA (Architectural Incubation).**
+> 🚀 **Catalyst MVP 1.0 (Swarm Activated)**
 
 ## 🌍 Global Architecture State
-**Current Strategy:** "Phase 1.5: Platform Dashboard"
-**Goal:** Expand the "Vertical Slice" into a Multi-Source Control Plane, visualizing Hardware, Agent Activity, and Repository Events.
+**Current Strategy:** "Phase 2: Core Orchestration & Swarm Intelligence"
+**Goal:** A self-hosted Control Plane ("High-Visibility Industrial Slate") visualizing Hardware Telemetry, Agent Swarm Operations, and Repository Events.
 
 ### 🏗️ Design Reference (The "Architecture Constraint")
 All functional components MUST adhere to this topology:
@@ -29,123 +29,95 @@ graph TD
 
     Device -->|sensor/cpu/temp| Broker
     Repo -->|repo/issue/new| Broker
-    Agents -->|agent/log| Broker
+    Agents -->|agent/+/log| Broker
     
     Broker -->|WebSockets| Widgets
 ```
 
 ---
 
-## 🤖 The Delivery Swarm
+## 🤖 The Delivery Swarm (MVP 1.0)
 We utilize a virtual "Swarm" of specialized agent personas to execute this project.
-**See `/docs/swarms.md` for current assignments.**
+**See `AGENTS.md` for detailed functional specs.**
 
-### 1. `UIPrime` (The Frontend Architect)
-*   **Mission**: Deliver a "Cyber-Minimalist", premium-feel control plane.
-*   **Tech Stack**: React 19, Vite, Tailwind CSS, Shadcn/UI, Framer Motion.
-*   **Directives**:
-    *   "Visualize everything; text is a fallback."
-    *   "Sidebar navigation must be intuitive."
-    *   **Responsibility**: `/ui` directory.
+### 1. `Interface` (The Frontend Architect)
+*   **Role**: Frontend Engineering & UX.
+*   **Mission**: Deliver a **High-Visibility "Industrial Slate"** control plane optimized for monitoring hardware.
+*   **Tech Stack**: React 19, Vite, Tailwind CSS (Slate Palette), Framer Motion.
+*   **Directives**: "Visualize everything. Reduce cognitive load."
 
-### 2. `SystemCore` (The Backend Engineer)
+### 2. `Orchestrator` (The Backend Engineer)
+*   **Role**: Core Systems Engineering.
 *   **Mission**: Build a fault-tolerant, high-concurrency event bus and orchestrator.
-*   **Tech Stack**: Go (Golang), Eclipse Mosquitto (MQTT), PostgreSQL.
-*   **Directives**:
-    *   "The Event Bus is the source of truth."
-    *   **Responsibility**: `/core` directory, `/bin/device-mock`.
+*   **Tech Stack**: Go (Golang), Eclipse Mosquitto (MQTT), PostgreSQL (Persistence).
+*   **Directives**: "The Event Bus is the source of truth."
 
-### 3. `BridgeBuilder` (The Hardware Integrator)
-*   **Mission**: Pierce the veil between the Container World and the Physical World.
-*   **Tech Stack**: Go (Windows Native), `go-serial`, Win32 APIs.
-*   **Directives**:
-    *   "Hardware is messy; sanitize the inputs."
-    *   **Responsibility**: `/bridge` directory.
+### 3. `Infrastructure` (DevOps & Site Reliability)
+*   **Role**: Infrastructure-as-Code (IaC) & K8s.
+*   **Mission**: Maintain the `kind` cluster, Docker resources, and self-hosted environments.
+*   **Tech Stack**: Kubernetes, Helm, Docker, Cygwin/Make.
+
+### 4. `Simulation` (Data Generation)
+*   **Role**: Chaos Engineering.
+*   **Mission**: Emulate hardware sensors and swarm activity for development (`device-mock`).
+*   **Status**: Active (Emitting `agent/+/log` and `sensor/cpu/temp`).
 
 ---
 
 ## 🧠 Phase 2: Core Orchestration Architecture
-The `catalyst-core` service is the central nervous system, built on a **Hexagonal Architecture** to ensure extensibility.
+The `catalyst-core` service is the central nervous system, built on a **Hexagonal Architecture**.
 
 ### 1. The Hexagonal Core
 *   **Domain Layer** (`internal/domain`): [x] Contracts Defined (`CloudEvent`, `Agent`).
 *   **Adapters** (`internal/adapter`):
     *   **EventBus**: [x] MQTT Client (Paho) Connected.
-    *   **Store**: [ ] Persistence for active workflows.
+    *   **Store**: [x] Postgres Persistence (Event Logging).
 *   **Service Layer** (`internal/service`):
     *   **MissionManager**: [x] Routing Logic Verified.
     *   **AgentRegistry**: [x] Plugin Loading (Concurrency Safe).
 
 ### 2. The Agent Execution Spectrum
 Agents interact in 3 modes, rigorously typed in the Domain:
-1.  **Reporting**: Telemetry/Logs (`agent.log`). Fire-and-forget. Verified via `ConsoleReporter`.
-2.  **Communicating**: Inter-agent Signals (`agent.signal`). Verified via `TrendScout`.
+1.  **Reporting**: Telemetry/Logs (`agent.log`). Fire-and-forget.
+2.  **Communicating**: Inter-agent Signals (`agent.signal`).
 3.  **Expressing**: Structured Artifacts (`data.report`). Final output.
-
-### 3. Quality Assurance
-*   **Unit Tests**: Comprehensive Go test suite for Domain, Service, and Agents.
-    *   Run tests: `make test`
-    *   Coverage: Event Marshaling, Registry Concurrency, Mission Routing, Anomaly Detection.
-
-### 4. Extensibility
-*   **New Inputs**: Core subscribes to wildcard topics (`sensor/#`).
-*   **New Agents**: Implements the `Agent` interface (`Execute(ctx, event)`).
 
 ---
 
-## 🛡️ Secure Self-Hosted Architecture (The "Ultrathink")
+## 🛡️ Secure Self-Hosted Architecture
 
 Catalyst is architected for **Zero Trust Local** execution.
 
 *   **Isolation**: Services run in strictly isolated containers (Docker).
 *   **Ingress Control**: No direct port exposure. Traffic flows through a Reverse Proxy.
-*   **Least Privilege**:
-    *   **Frontend**: Static Nginx build (No Node.js runtime in prod).
-    *   **Backend**: Distroless Go binary.
-    *   **Broker**: Mosquitto with explicit ACLs.
+*   **Least Privilege**: Strict ACLs on the MQTT Broker.
 
 ### 🛠️ Development Workflow
-We adhere to a standardized `Makefile` workflow to ensure environment consistency.
+We adhere to a standardized `Makefile` workflow.
 
-**Prerequisites**: Docker Desktop, Go 1.22+, Node.js 20+.
+**Prerequisites**: Docker Desktop, Go 1.22+, Node.js 20+, Kind.
 
 ```bash
-# 1. Install Dependencies
+# 1. Install Dependencies & Tools
 make install
 
-# 2. Start Full Stack (Default Ports)
-# Launches UI (localhost:5173) and Device Mock
+# 2. Start Full Stack (Localhost)
+# Launches UI (localhost:5173), Core Service, and Device Mock
 make dev
 
-# 3. Clean Environment (Kill conflicting processes)
+# 3. Clean Environment (Kill processes, prune containers)
 make clean
 
-# 4. Start Individual Components
-make ui    # Frontend only
-make mock  # Backend Mock only
+# 4. Infrastructure Management
+make cluster-up   # Start Kind Cluster (DB/Broker)
+make cluster-down # Destroy Cluster
 ```
 
 ---
 
-## 🛠️ Development Workflow (Local-First)
-We prioritize **Localhost execution** over containerization during the "Incubation" phase.
-
-### Phase 1.5: Platform Dashboard (Current)
-1.  **Start Broker**: `docker compose up -d mosquitto` (Ports: `1883`, `9001`)
-2.  **Start UI**: `cd ui && npm run dev` (Localhost: `5174`)
-3.  **Start Mock System**: `go run ./bin/device-mock` (Simulates Hardware + Agents + Repo)
-
-### Phase 2: K8s Deployment (Future)
-*   Containerize `/core` and `/ui`.
-*   Deploy to Kind cluster.
-*   `BridgeBuilder` remains as a native Windows binary.
-
----
-
 ## 📂 Repository Structure
-*   `/ui`: The React Frontend Application.
-*   `/core`: The central Go Orchestrator.
-*   `/bridge`: The Windows Native Hardware Bridge.
-*   `/bin`: Helper scripts and mocks (e.g., `device-mock`).
-*   `/deploy`: Docker Compose and Helm Charts.
+*   `/ui`: The React Frontend Application (`Interface`).
+*   `/core`: The central Go Orchestrator (`Orchestrator`).
+*   `/bin`: Helper scripts and mocks (`Simulation`).
+*   `/deploy`: Kubernetes Manifests and Docker configs (`Infrastructure`).
 *   `/docs`: Architecture Decision Records (ADRs).
