@@ -1,7 +1,7 @@
-# Deleggit
+# Catalyst
 > **The Autonomous Open Source Maintenance Platform.**
 
-> 🚧 **Deleggit is currently in PRE-ALPHA (Architectural Incubation).**
+> 🚧 **Catalyst is currently in PRE-ALPHA (Architectural Incubation).**
 
 ## 🌍 Global Architecture State
 **Current Strategy:** "Phase 1.5: Platform Dashboard"
@@ -18,7 +18,7 @@ graph TD
         Agents[Agent Swarm (Go/Containers)]
     end
 
-    subgraph "Deleggit Runtime (Event Bus)"
+    subgraph "Catalyst Runtime (Event Bus)"
         Broker[Mosquitto MQTT]
     end
 
@@ -65,7 +65,7 @@ We utilize a virtual "Swarm" of specialized agent personas to execute this proje
 ---
 
 ## 🧠 Phase 2: Core Orchestration Architecture
-The `deleggit-core` service is the central nervous system, built on a **Hexagonal Architecture** to ensure extensibility.
+The `catalyst-core` service is the central nervous system, built on a **Hexagonal Architecture** to ensure extensibility.
 
 ### 1. The Hexagonal Core
 *   **Domain Layer** (`internal/domain`): [x] Contracts Defined (`CloudEvent`, `Agent`).
@@ -95,7 +95,7 @@ Agents interact in 3 modes, rigorously typed in the Domain:
 
 ## 🛡️ Secure Self-Hosted Architecture (The "Ultrathink")
 
-Deleggit is architected for **Zero Trust Local** execution.
+Catalyst is architected for **Zero Trust Local** execution.
 
 *   **Isolation**: Services run in strictly isolated containers (Docker).
 *   **Ingress Control**: No direct port exposure. Traffic flows through a Reverse Proxy.

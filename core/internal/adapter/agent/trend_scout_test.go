@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/datacraft/deleggit/core/internal/domain"
+	"github.com/datacraft/catalyst/core/internal/domain"
 )
 
 func TestTrendScout_Execute(t *testing.T) {

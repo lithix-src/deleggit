@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/datacraft/deleggit/core/internal/domain"
+	"github.com/datacraft/catalyst/core/internal/domain"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 

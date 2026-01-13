@@ -1,4 +1,4 @@
-# 🤖 Deleggit Agent Swarm Assignments
+# 🤖 Catalyst Agent Swarm Assignments
 > **Phase 1.5: Platform Dashboard**
 
 ## 1. UIPrime (Frontend Specialist)

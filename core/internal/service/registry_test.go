@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/datacraft/deleggit/core/internal/domain"
+	"github.com/datacraft/catalyst/core/internal/domain"
 )
 
 // Mock Registry Agent

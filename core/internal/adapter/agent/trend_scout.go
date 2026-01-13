@@ -8,16 +8,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/datacraft/deleggit/core/internal/domain"
+	"github.com/datacraft/catalyst/core/internal/domain"
 )
 
 // TrendScout is a "Communicator" agent (Level 2).
 // It analyzes sensor data streams to find patterns and signal anomalies.
 type TrendScout struct {
-	id          string
-	threshold   float64
-	readings    []float64 // Moving window
-	windowSize  int
+	id         string
+	threshold  float64
+	readings   []float64 // Moving window
+	windowSize int
 }
 
 func NewTrendScout(id string, threshold float64) *TrendScout {
@@ -47,17 +47,17 @@ func (a *TrendScout) Execute(ctx context.Context, input domain.CloudEvent) (*dom
 	// device-mock sends: `{"value": 45.2, "unit": "C"}` (Hypothetically)
 	// Actually, looking at logs: `Data Length: 82`.
 	// Let's assume the mock sends a simple JSON object.
-	
+
 	var data struct {
 		Value float64 `json:"value"`
 		Unit  string  `json:"unit"`
 	}
-	
+
 	// device-mock currently might just be sending raw text or simple JSON.
 	// Let's try to unmarshal.
 	if err := json.Unmarshal(input.Data, &data); err != nil {
 		// Fallback: If mock sends just a number string?
-		str := string(input.Data) 
+		str := string(input.Data)
 		// Strip quotes if it's a JSON string
 		str = strings.Trim(str, "\"")
 		val, err := strconv.ParseFloat(str, 64)
@@ -88,13 +88,13 @@ func (a *TrendScout) Execute(ctx context.Context, input domain.CloudEvent) (*dom
 	// 3. Output: Signal if Overheat
 	if avg > a.threshold {
 		log.Printf("  !!! [AGENT:%s] OVERHEAT DETECTED. Signaling Swarm.", a.id)
-		
+
 		signalData := map[string]interface{}{
 			"severity": "critical",
 			"message":  fmt.Sprintf("CPU High Temp detected: %.1f C (Avg %.1f)", data.Value, avg),
 			"source":   input.Source,
 		}
-		
+
 		evt, err := domain.NewEvent("agent.trend_scout", "swarm.security.alert", signalData)
 		if err != nil {
 			return nil, err

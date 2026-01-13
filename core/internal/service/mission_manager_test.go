@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/datacraft/deleggit/core/internal/domain"
+	"github.com/datacraft/catalyst/core/internal/domain"
 )
 
 // MockAgent implements domain.Agent for testing

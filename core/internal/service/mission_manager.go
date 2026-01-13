@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/datacraft/deleggit/core/internal/domain"
+	"github.com/datacraft/catalyst/core/internal/domain"
 )
 
 // MissionManager coordinates the execution of Missions based on triggers.

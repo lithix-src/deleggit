@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/datacraft/deleggit/core/internal/domain"
+	"github.com/datacraft/catalyst/core/internal/domain"
 )
 
 // AgentRegistry manages the lifecycle and lookup of available Agents.

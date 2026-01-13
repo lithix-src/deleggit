@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/datacraft/deleggit/core/internal/domain"
+	"github.com/datacraft/catalyst/core/internal/domain"
 )
 
 // ConsoleReporter is a Phase 2 test agent that simply reports activity to stdout.

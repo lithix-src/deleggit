@@ -27,7 +27,7 @@ func main() {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
-	fmt.Println("Connected to Mosquitto. Starting Multi-Source Simulation...")
+	fmt.Println("Connected to Mosquitto. Starting Catalyst Simulation...")
 
 	// 1. Hardware Sensor Loop (Fast)
 	go func() {
@@ -40,8 +40,8 @@ func main() {
 
 	// 2. Agent Log Loop (Bursty)
 	go func() {
-		agents := []string{"TrendScout", "GapAnalyst", "CodeRunner"}
-		actions := []string{"Scanning", "Analyzing", "Sleeping", "Fetching", "Compiling"}
+		agents := []string{"Interface", "Orchestrator", "Infrastructure", "Compliance", "Simulation"}
+		actions := []string{"Optimizing", "Compiling", "Provisioning", "Verifying", "Simulating"}
 		for {
 			time.Sleep(time.Duration(rand.Intn(3000)+500) * time.Millisecond)
 			agent := agents[rand.Intn(len(agents))]
@@ -58,13 +58,15 @@ func main() {
 
 	// 3. Repo Event Loop (Rare)
 	go func() {
+		repos := []string{"catalyst/ui", "catalyst/core", "catalyst/infra"}
 		for {
 			time.Sleep(time.Duration(rand.Intn(10000)+5000) * time.Millisecond)
+			repo := repos[rand.Intn(len(repos))]
 			issueID := rand.Intn(1000) + 1
-			emit(client, "repo/lithix/issue", "repo.issue.new", map[string]interface{}{
-				"repo":  "lithix/core",
+			emit(client, "repo/issue/new", "repo.issue.new", map[string]interface{}{
+				"repo":  repo,
 				"id":    issueID,
-				"title": fmt.Sprintf("Unexpected panic in worker %d", issueID),
+				"title": fmt.Sprintf("Anomaly detected in %s module", repo),
 			})
 		}
 	}()

@@ -10,14 +10,17 @@ interface LogEntry {
     agent: string;
     message: string;
     time: string;
-    variant: "scout" | "analyst" | "runner" | "default";
+    variant: "scout" | "analyst" | "runner" | "infra" | "ui" | "sim" | "qa" | "default";
 }
 
 const AGENT_VARIANTS: Record<string, { color: string; icon: any }> = {
-    "TrendScout": { color: "text-purple-400", icon: Search },
-    "GapAnalyst": { color: "text-blue-400", icon: Database },
-    "CodeRunner": { color: "text-amber-400", icon: Zap },
-    "default": { color: "text-zinc-400", icon: Terminal },
+    // Standard Roles
+    "Interface": { color: "text-pink-400", icon: Zap },
+    "Orchestrator": { color: "text-emerald-400", icon: Database },
+    "Infrastructure": { color: "text-slate-400", icon: Terminal },
+    "Compliance": { color: "text-cyan-400", icon: Search },
+    "Simulation": { color: "text-zinc-500", icon: Terminal },
+    "default": { color: "text-slate-400", icon: Terminal },
 };
 
 export function ActiveAgents() {
@@ -27,9 +30,13 @@ export function ActiveAgents() {
     useEventSubscription("agent/+/log", (event: CloudEvent) => {
         const agentName = event.data.agent || "Unknown";
         let variant: LogEntry["variant"] = "default";
-        if (agentName === "TrendScout") variant = "scout";
-        if (agentName === "GapAnalyst") variant = "analyst";
-        if (agentName === "CodeRunner") variant = "runner";
+        // Map agent name to variant key if it exists in AGENT_VARIANTS, closely enough
+        if (AGENT_VARIANTS[agentName]) {
+            // We don't strictly need "variant" string if we look up by name in render, 
+            // but let's keep the pattern or just use name.
+            // Actually, the render uses AGENT_VARIANTS[log.agent], so we just need ensuring the type is happy?
+            // The interface defines specific strings. Let's cast or expand.
+        }
 
         const entry: LogEntry = {
             id: event.id,
@@ -52,28 +59,28 @@ export function ActiveAgents() {
     }, [logs]);
 
     return (
-        <Card className="bg-zinc-950 border-zinc-800 col-span-1 md:col-span-2 flex flex-col h-full min-h-[300px]">
+        <Card className="bg-slate-900 border-slate-800 col-span-1 md:col-span-2 flex flex-col h-full min-h-[300px] shadow-xl shadow-slate-950/50">
             <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
-                <CardTitle className="text-sm font-mono text-zinc-400 flex items-center gap-2">
+                <CardTitle className="text-sm font-mono text-slate-400 flex items-center gap-2">
                     <Terminal className="h-4 w-4 text-emerald-500" />
                     AGENT SWARM ACTIVITY
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 min-h-0 p-0 relative">
-                <ScrollArea className="h-[300px] w-full bg-zinc-900/50 p-4 font-mono text-xs">
+                <ScrollArea className="h-[300px] w-full bg-slate-950/30 p-4 font-mono text-xs">
                     <div className="space-y-1">
-                        {logs.length === 0 && <div className="text-zinc-600 italic">Waiting for agent signals...</div>}
+                        {logs.length === 0 && <div className="text-slate-600 italic">Waiting for agent signals...</div>}
                         {logs.map((log) => {
                             const style = AGENT_VARIANTS[log.agent] || AGENT_VARIANTS["default"];
                             const Icon = style.icon;
                             return (
-                                <div key={log.id} className="flex gap-3 items-start hover:bg-zinc-900/80 p-1 rounded transition-colors group">
-                                    <span className="text-zinc-700 w-16 mobile-hide shrink-0">[{log.time}]</span>
+                                <div key={log.id} className="flex gap-3 items-start hover:bg-slate-800/80 p-1 rounded transition-colors group">
+                                    <span className="text-slate-600 w-16 mobile-hide shrink-0">[{log.time}]</span>
                                     <div className={cn("flex items-center gap-2 font-bold shrink-0 w-28", style.color)}>
                                         <Icon className="h-3 w-3" />
                                         {log.agent}
                                     </div>
-                                    <span className="text-zinc-300 break-all group-hover:text-zinc-100 transition-colors">{log.message}</span>
+                                    <span className="text-slate-300 break-all group-hover:text-slate-100 transition-colors">{log.message}</span>
                                 </div>
                             );
                         })}

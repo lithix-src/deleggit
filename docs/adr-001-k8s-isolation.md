@@ -4,7 +4,7 @@
 Proposed
 
 ## Context
-Deleggit executes AI-generated code, which is inherently untrusted. We need a way to run this code within a Kubernetes cluster with maximum isolation to prevent container escapes, lateral movement, and host compromise. The solution must support standard Docker/OCI images to maintain compatibility with the broader ecosystem.
+Catalyst executes AI-generated code, which is inherently untrusted. We need a way to run this code within a Kubernetes cluster with maximum isolation to prevent container escapes, lateral movement, and host compromise. The solution must support standard Docker/OCI images to maintain compatibility with the broader ecosystem.
 
 ## Decision
 We will use **Kata Containers with Firecracker** as the runtime for agent sandboxes.

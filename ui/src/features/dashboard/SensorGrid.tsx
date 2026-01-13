@@ -12,7 +12,7 @@ export function SensorGrid() {
     const [cpuTemps, setCpuTemps] = useState<SensorValue[]>([]);
     const [currentTemp, setCurrentTemp] = useState<number>(0);
 
-    useEventSubscription("sensor/mock-device-01/data", (event: CloudEvent) => {
+    useEventSubscription("sensor/cpu/temp", (event: CloudEvent) => {
         // Expected event.data = { value: 65.4 }
         const val = event.data.value;
         const time = new Date(event.time).toLocaleTimeString();
@@ -26,9 +26,9 @@ export function SensorGrid() {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-            <Card className="bg-zinc-950 border-zinc-800 text-zinc-100">
+            <Card className="bg-slate-900 border-slate-800 text-slate-100 shadow-xl shadow-slate-950/50">
                 <CardHeader>
-                    <CardTitle className="text-sm font-mono text-zinc-400">CPU TEMPERATURE</CardTitle>
+                    <CardTitle className="text-sm font-mono text-slate-400">CPU TEMPERATURE</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="text-4xl font-bold mb-4 font-mono text-emerald-400">
@@ -52,8 +52,8 @@ export function SensorGrid() {
             </Card>
 
             {/* Placeholder for other sensors */}
-            <Card className="bg-zinc-950 border-zinc-800 text-zinc-100 opacity-50">
-                <CardHeader><CardTitle className="text-sm font-mono text-zinc-400">MEMORY USAGE</CardTitle></CardHeader>
+            <Card className="bg-slate-900 border-slate-800 text-slate-100 opacity-50">
+                <CardHeader><CardTitle className="text-sm font-mono text-slate-400">MEMORY USAGE</CardTitle></CardHeader>
                 <CardContent><div className="text-xl font-mono">OFFLINE</div></CardContent>
             </Card>
         </div>

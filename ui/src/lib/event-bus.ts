@@ -33,9 +33,11 @@ client.on("error", (err) => {
 export function useEventSubscription(topic: string, handler: (payload: CloudEvent) => void) {
     useEffect(() => {
         const handleMessage = (chkTopic: string, message: Buffer) => {
-            // Basic topic matching (exact or simple wildcard logic if needed)
-            // For now, accept if topic matches
-            if (chkTopic === topic || (topic.endsWith("#") && chkTopic.startsWith(topic.slice(0, -1)))) {
+            // Regex based matching for + and # wildcards
+            const pattern = "^" + topic.replace(/\+/g, "[^/]+").replace(/#/g, ".*") + "$";
+            const regex = new RegExp(pattern);
+
+            if (regex.test(chkTopic)) {
                 try {
                     const payload = JSON.parse(message.toString());
                     handler(payload);

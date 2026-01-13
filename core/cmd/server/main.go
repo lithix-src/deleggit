@@ -1,24 +1,26 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/datacraft/deleggit/core/internal/adapter/agent"
-	"github.com/datacraft/deleggit/core/internal/adapter/mqtt"
-	"github.com/datacraft/deleggit/core/internal/domain"
-	"github.com/datacraft/deleggit/core/internal/service"
+	"github.com/datacraft/catalyst/core/internal/adapter/agent"
+	"github.com/datacraft/catalyst/core/internal/adapter/mqtt"
+	"github.com/datacraft/catalyst/core/internal/adapter/store"
+	"github.com/datacraft/catalyst/core/internal/domain"
+	"github.com/datacraft/catalyst/core/internal/service"
 )
 
 const (
 	BrokerURL = "tcp://localhost:1883"
-	ClientID  = "deleggit-core-service"
+	ClientID  = "catalyst-core-service"
 )
 
 func main() {
-	log.Println("Starting Deleggit Core Service (Phase 2)...")
+	log.Println("Starting Catalyst Core Service (Phase 2)...")
 
 	// ==========================================
 	// 1. DOMAIN & SERVICE LAYER (The "Brain")
@@ -27,21 +29,43 @@ func main() {
 	// A. Registry
 	registry := service.NewAgentRegistry()
 
+	// 1.5 Data Store (PostgreSQL)
+	// User NodePort 30000 -> 5432
+	connStr := "postgres://catalyst:devpassword@localhost:5432/catalyst_core"
+	pgStore, err := store.NewPostgresStore(connStr)
+	if err != nil {
+		log.Printf("⚠️ [STORE] Failed to connect to Postgres (is K8s up?): %v", err)
+	} else {
+		defer pgStore.Close()
+		log.Println("✅ [STORE] Connected to Postgres.")
+		if err := pgStore.InitSchema(context.Background()); err != nil {
+			log.Fatalf("Failed to init schema: %v", err)
+		}
+	}
+
 	// B. Register Standard Agents (Plugins)
 	// In Phase 3 this will be dynamic. For now, we hardcode the "Swarm".
 	registry.Register(agent.NewTrendScout("TrendScout", 80.0)) // Alert if avg > 80C
-	registry.Register(agent.NewConsoleReporter("GapAnalyst"))
+	registry.Register(agent.NewConsoleReporter("SwarmLog"))    // General Logger
 
 	// C. Mission Manager (Orchestrator)
 	missionMgr := service.NewMissionManager(registry)
 
 	// D. Load Default Missions (Configuration)
-	// "When Sensor Data arrives, wake up TrendScout"
+	// 1. Hardware Watch
 	missionMgr.LoadMission(domain.Mission{
 		ID:           "mission-001",
 		Name:         "Hardware Telemetry Watch",
 		TriggerTopic: "sensor/#", // Matches any sensor event
 		Agents:       []string{"TrendScout"},
+	})
+
+	// 2. Swarm Activity Watch
+	missionMgr.LoadMission(domain.Mission{
+		ID:           "mission-002",
+		Name:         "Swarm Activity Stream",
+		TriggerTopic: "agent/+/log", // Matches agent logs
+		Agents:       []string{"SwarmLog"},
 	})
 
 	// ==========================================
@@ -59,6 +83,15 @@ func main() {
 	// B. Subscribe Routes
 	// Route all sensor data to the Mission Manager
 	err = mqttClient.Subscribe("sensor/#", func(event domain.CloudEvent) {
+		// 1. Persist (Best Effort)
+		if pgStore != nil {
+			go func() {
+				if err := pgStore.SaveEvent(context.Background(), event); err != nil {
+					log.Printf("Failed to save event: %v", err)
+				}
+			}()
+		}
+		// 2. Process
 		missionMgr.ProcessEvent(event)
 	})
 	if err != nil {

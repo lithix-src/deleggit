@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// CloudEvent represents the standard event envelope for the Deleggit system.
+// CloudEvent represents the standard event envelope for the Catalyst system.
 // It adheres to the CloudEvents JSON format.
 type CloudEvent struct {
 	ID          string          `json:"id"`
