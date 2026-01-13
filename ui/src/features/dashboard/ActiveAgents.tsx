@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useEventSubscription, CloudEvent } from "@/lib/event-bus";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Terminal, Search, Zap, Database } from "lucide-react";
+import { Terminal, Search, Zap, Database, Activity } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface LogEntry {
@@ -13,14 +14,14 @@ interface LogEntry {
     variant: "scout" | "analyst" | "runner" | "infra" | "ui" | "sim" | "qa" | "default";
 }
 
-const AGENT_VARIANTS: Record<string, { color: string; icon: any }> = {
+const AGENT_CONFIG: Record<string, { color: string; icon: any; badge: string }> = {
     // Standard Roles
-    "Interface": { color: "text-pink-400", icon: Zap },
-    "Orchestrator": { color: "text-emerald-400", icon: Database },
-    "Infrastructure": { color: "text-slate-400", icon: Terminal },
-    "Compliance": { color: "text-cyan-400", icon: Search },
-    "Simulation": { color: "text-zinc-500", icon: Terminal },
-    "default": { color: "text-slate-400", icon: Terminal },
+    "Interface": { color: "text-pink-400", badge: "bg-pink-950/50 text-pink-400 border-pink-800 hover:bg-pink-900/50", icon: Zap },
+    "Orchestrator": { color: "text-emerald-400", badge: "bg-emerald-950/50 text-emerald-400 border-emerald-800 hover:bg-emerald-900/50", icon: Database },
+    "Infrastructure": { color: "text-blue-400", badge: "bg-blue-950/50 text-blue-400 border-blue-800 hover:bg-blue-900/50", icon: Terminal },
+    "Compliance": { color: "text-cyan-400", badge: "bg-cyan-950/50 text-cyan-400 border-cyan-800 hover:bg-cyan-900/50", icon: Search },
+    "Simulation": { color: "text-zinc-400", badge: "bg-zinc-900 text-zinc-400 border-zinc-700 hover:bg-zinc-800", icon: Activity },
+    "default": { color: "text-slate-400", badge: "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800", icon: Terminal },
 };
 
 export function ActiveAgents() {
@@ -29,21 +30,13 @@ export function ActiveAgents() {
 
     useEventSubscription("agent/+/log", (event: CloudEvent) => {
         const agentName = event.data.agent || "Unknown";
-        let variant: LogEntry["variant"] = "default";
-        // Map agent name to variant key if it exists in AGENT_VARIANTS, closely enough
-        if (AGENT_VARIANTS[agentName]) {
-            // We don't strictly need "variant" string if we look up by name in render, 
-            // but let's keep the pattern or just use name.
-            // Actually, the render uses AGENT_VARIANTS[log.agent], so we just need ensuring the type is happy?
-            // The interface defines specific strings. Let's cast or expand.
-        }
 
         const entry: LogEntry = {
-            id: event.id,
+            id: event.id || Math.random().toString(),
             agent: agentName,
             message: event.data.message,
             time: new Date(event.time).toLocaleTimeString(),
-            variant,
+            variant: "default",
         };
         setLogs((prev) => {
             const newLogs = [...prev, entry];
@@ -65,22 +58,31 @@ export function ActiveAgents() {
                     <Terminal className="h-4 w-4 text-emerald-500" />
                     AGENT SWARM ACTIVITY
                 </CardTitle>
+                <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="border-slate-800 text-slate-500 font-mono text-[10px]">
+                        ACTIVE: {new Set(logs.map(l => l.agent)).size}
+                    </Badge>
+                </div>
             </CardHeader>
             <CardContent className="flex-1 min-h-0 p-0 relative">
-                <ScrollArea className="h-[300px] w-full bg-slate-950/30 p-4 font-mono text-xs">
-                    <div className="space-y-1">
-                        {logs.length === 0 && <div className="text-slate-600 italic">Waiting for agent signals...</div>}
+                <ScrollArea className="h-[300px] w-full bg-slate-950/30 font-mono text-xs">
+                    <div className="flex flex-col w-full">
+                        {logs.length === 0 && <div className="text-slate-600 italic p-4">Waiting for agent signals...</div>}
                         {logs.map((log) => {
-                            const style = AGENT_VARIANTS[log.agent] || AGENT_VARIANTS["default"];
-                            const Icon = style.icon;
+                            const config = AGENT_CONFIG[log.agent] || AGENT_CONFIG["default"];
                             return (
-                                <div key={log.id} className="flex gap-3 items-start hover:bg-slate-800/80 p-1 rounded transition-colors group">
-                                    <span className="text-slate-600 w-16 mobile-hide shrink-0">[{log.time}]</span>
-                                    <div className={cn("flex items-center gap-2 font-bold shrink-0 w-28", style.color)}>
-                                        <Icon className="h-3 w-3" />
-                                        {log.agent}
+                                <div key={log.id} className="flex gap-3 items-center hover:bg-slate-800/40 px-4 py-2 border-b border-slate-900/50 last:border-0 group transition-colors">
+                                    <span className="text-slate-600 w-16 shrink-0 text-[10px]">{log.time}</span>
+
+                                    <div className="w-24 shrink-0">
+                                        <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 font-normal w-full justify-center", config.badge)}>
+                                            {log.agent}
+                                        </Badge>
                                     </div>
-                                    <span className="text-slate-300 break-all group-hover:text-slate-100 transition-colors">{log.message}</span>
+
+                                    <span className="text-slate-300 break-all group-hover:text-slate-100 transition-colors flex-1">
+                                        {log.message}
+                                    </span>
                                 </div>
                             );
                         })}
