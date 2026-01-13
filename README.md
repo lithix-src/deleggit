@@ -4,7 +4,7 @@
 > 🚀 **Catalyst MVP 1.0 (Swarm Activated)**
 
 ## 🌍 Global Architecture State
-**Current Strategy:** "Phase 2: Core Orchestration & Swarm Intelligence"
+**Current Strategy:** "Phase 4: Real-World Connectivity"
 **Goal:** A self-hosted Control Plane ("High-Visibility Industrial Slate") visualizing Hardware Telemetry, Agent Swarm Operations, and Repository Events.
 
 ### 🏗️ Design Reference (The "Architecture Constraint")
@@ -28,7 +28,7 @@ graph TD
     end
 
     Device -->|sensor/cpu/temp| Broker
-    Repo -->|repo/issue/new| Broker
+    Repo -->|repo/+/event| Broker
     Agents -->|agent/+/log| Broker
     
     Broker -->|WebSockets| Widgets
@@ -61,6 +61,14 @@ We utilize a virtual "Swarm" of specialized agent personas to execute this proje
 *   **Role**: Chaos Engineering.
 *   **Mission**: Emulate hardware sensors and swarm activity for development (`device-mock`).
 *   **Status**: Active (Emitting `agent/+/log` and `sensor/cpu/temp`).
+
+### 5. `Watcher` (Repository Monitor)
+*   **Role**: Source Control Intelligence.
+*   **Mission**: Poll GitHub repositories for Pull Requests, Issues, and Pushes.
+*   **Features**:
+    *   **Smart Polling**: Stateful Change Detection (No polling spam).
+    *   **Rich Events**: Distinguishes between `repo.push`, `repo.pr`, and `repo.issue`.
+    *   **Status**: Active (`bin/repo-watcher`).
 
 ---
 
@@ -102,7 +110,7 @@ We adhere to a standardized `Makefile` workflow.
 make install
 
 # 2. Start Full Stack (Localhost)
-# Launches UI (localhost:5173), Core Service, and Device Mock
+# Launches UI (localhost:5173), Core Service, Device Mock, and Repo Watcher
 make dev
 
 # 3. Clean Environment (Kill processes, prune containers)
@@ -118,6 +126,8 @@ make cluster-down # Destroy Cluster
 ## 📂 Repository Structure
 *   `/ui`: The React Frontend Application (`Interface`).
 *   `/core`: The central Go Orchestrator (`Orchestrator`).
-*   `/bin`: Helper scripts and mocks (`Simulation`).
+*   `/bin`:
+    *   `device-mock`: Hardware simulator (`Simulation`).
+    *   `repo-watcher`: GitHub connectivity service (`Watcher`).
 *   `/deploy`: Kubernetes Manifests and Docker configs (`Infrastructure`).
 *   `/docs`: Architecture Decision Records (ADRs).
