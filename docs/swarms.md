@@ -1,46 +1,29 @@
-# Deleggit Agent Swarms
+# 🤖 Deleggit Agent Swarm Assignments
+> **Phase 1.5: Platform Dashboard**
 
-## Discovery Swarm (001)
+## 1. UIPrime (Frontend Specialist)
+**Objective**: Transform the Single-Page MVP into a Multi-Page Dashboard.
 
-The Discovery Swarm is the "Concept Engine" of Deleggit. It proactively monitors the software ecosystem to identify high-value opportunities for new libraries or tools.
+### Active Tasks
+*   [ ] **Sidebar Navigation**: Implement a collapsible sidebar with links to `Dashboard`, `Workflows`, `Hardware`.
+*   [ ] **Dashboard Layout**: Create a CSS Grid layout for widgets.
+*   [ ] **Widget: Hardware Monitor**: Upgrade `SensorGrid` to handle CPU, RAM, and Network Latency.
+*   [ ] **Widget: Active Agents**: Create a "Terminal-style" live log viewer for `agent/+/log`.
+*   [ ] **Widget: Repository Events**: Create a "Notification Feed" for `repo/+/issue`.
 
-### Architecture: The "Research Loop"
-Unlike a standard chat-bot, this swarm operates as a specialized pipeline of three distinct Agent personas.
+## 2. BridgeBuilder (Hardware/Mock Specialist)
+**Objective**: Simulate a complex, multi-source environment.
 
-#### 1. Agent: TrendScout
-*   **Role**: Signal Detection & Gathering.
-*   **Behavior**: Scans external sources for recurring pain points or exciting new technologies.
-*   **Key Question**: "What are developers complaining about or getting excited about *right now*?"
-*   **Outputs**: `TrendSignal` (Topic, Source, Intensity Score).
+### Active Tasks
+*   [ ] **Upgrade `device-mock`**:
+    *   Refactor main loop to run multiple concurrent "emitters".
+    *   **Emitter 1**: `sensor/cpu/temp` (Sine wave 40-80C).
+    *   **Emitter 2**: `agent/trend-scout/log` (Random text logs: "Scanning...", "Found pattern...", "Sleeping").
+    *   **Emitter 3**: `repo/lithix/issue` (Rare event: "New Issue #123 created").
 
-#### 2. Agent: GapAnalyst
-*   **Role**: Market Fit & Validation.
-*   **Behavior**: Takes a `TrendSignal` and cross-references it with existing package registries (PyPI, NPM, Crates, Maven).
-*   **Key Question**: "Does a high-quality, maintained solution already exist for this problem?"
-*   **Outputs**: `GapReport` (Verdict: SATURATED | GAP_FOUND | UNDERSERVED).
+## 3. SystemCore (Architect/Backend)
+**Objective**: Enforce Event Consistency.
 
-#### 3. Agent: ConceptArchitect
-*   **Role**: Solution Design.
-*   **Behavior**: Generates the "Pitch" for the missing tool.
-*   **Key Question**: "If we built this, what would the API look like? What is the 'Killer Feature'?"
-*   **Outputs**: `ConceptManifest` (JSON schema including Name, Description, Proposed API).
-
-### Data Flow
-```mermaid
-sequenceDiagram
-    participant Scheduler
-    participant TS as TrendScout
-    participant GA as GapAnalyst
-    participant CA as ConceptArchitect
-    participant DB as Concept Store
-
-    Scheduler->>TS: Trigger Scan (Topic: "Python")
-    TS->>TS: Search HN/GitHub/Reddit
-    TS->>GA: Emit Signal ("Async SQLite Clients")
-    
-    GA->>GA: Search PyPI / GitHub
-    GA->>CA: Report ("Gap: Existing drivers are unmaintained")
-    
-    CA->>CA: Draft API & Readme
-    CA->>DB: Save ConceptManifest ("aiosqlite-ng")
-```
+### Active Tasks
+*   [ ] **Event Schema Definition**: Ensure `CloudEvents` structure is respected by both `device-mock` and `ui/src/lib/event-bus.ts`.
+*   [ ] **QoS Verification**: Ensure Log messages (Agents) are delivered even if bursty.

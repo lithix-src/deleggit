@@ -41,7 +41,6 @@ build/
 Thumbs.db
 
 # Deleggit Specific
-bin/device-mock
 bin/device-bridge
 *.log
 tmp/

@@ -4,54 +4,54 @@
 > 🚧 **Deleggit is currently in PRE-ALPHA (Architectural Incubation).**
 
 ## 🌍 Global Architecture State
-**Current Strategy:** "The Vertical Slice MVP"
-**Goal:** Establish a full data loop from Hardware to Web UI immediately, bypassing initial K8s complexity for rapid prototyping.
+**Current Strategy:** "Phase 1.5: Platform Dashboard"
+**Goal:** Expand the "Vertical Slice" into a Multi-Source Control Plane, visualizing Hardware, Agent Activity, and Repository Events.
 
 ### 🏗️ Design Reference (The "Architecture Constraint")
 All functional components MUST adhere to this topology:
 
 ```mermaid
 graph TD
-    subgraph "Windows Host (Hardware Layer)"
-        Device[Hardware / USB / Serial]
-        Bridge[Device Bridge (Go Binary)]
+    subgraph "Windows Host (Source Layer)"
+        Device[Hardware Bridge (Go)]
+        Repo[Repository Watcher (Go)]
+        Agents[Agent Swarm (Go/Containers)]
     end
 
-    subgraph "Deleggit Runtime (Local/K8s)"
-        Broker[MQTT Broker (Mosquitto)]
-        Core[Deleggit Core (Go)]
-        Agents[Agent Swarm (TrendScout, GapAnalyst...)]
+    subgraph "Deleggit Runtime (Event Bus)"
+        Broker[Mosquitto MQTT]
     end
 
-    subgraph "User Interface"
-        UI[React + Shadcn UI (Cyber-Minimalist)]
+    subgraph "Platform Dashboard (UI Layer)"
+        Sidebar[Nav: Dashboard/Workflows/Hardware]
+        Widgets[Grid: Sensors/Logs/Events]
     end
 
-    Device <-->|Serial/HID| Bridge
-    Bridge <-->|MQTT (TCP)| Broker
-    Core <-->|MQTT (TCP)| Broker
-    Agents <-->|MQTT (TCP)| Broker
-    UI <-->|MQTT (WebSockets)| Broker
+    Device -->|sensor/cpu/temp| Broker
+    Repo -->|repo/issue/new| Broker
+    Agents -->|agent/log| Broker
+    
+    Broker -->|WebSockets| Widgets
 ```
 
 ---
 
 ## 🤖 The Delivery Swarm
 We utilize a virtual "Swarm" of specialized agent personas to execute this project.
+**See `/docs/swarms.md` for current assignments.**
 
 ### 1. `UIPrime` (The Frontend Architect)
 *   **Mission**: Deliver a "Cyber-Minimalist", premium-feel control plane.
 *   **Tech Stack**: React 19, Vite, Tailwind CSS, Shadcn/UI, Framer Motion.
 *   **Directives**:
-    *   "If it looks generic, it is wrong."
     *   "Visualize everything; text is a fallback."
+    *   "Sidebar navigation must be intuitive."
     *   **Responsibility**: `/ui` directory.
 
 ### 2. `SystemCore` (The Backend Engineer)
 *   **Mission**: Build a fault-tolerant, high-concurrency event bus and orchestrator.
 *   **Tech Stack**: Go (Golang), Eclipse Mosquitto (MQTT), PostgreSQL.
 *   **Directives**:
-    *   "Concurrency is not parallelism."
     *   "The Event Bus is the source of truth."
     *   **Responsibility**: `/core` directory, `/bin/device-mock`.
 
@@ -64,13 +64,69 @@ We utilize a virtual "Swarm" of specialized agent personas to execute this proje
 
 ---
 
+## 🧠 Phase 2: Core Orchestration Architecture
+The `deleggit-core` service is the central nervous system, built on a **Hexagonal Architecture** to ensure extensibility.
+
+### 1. The Hexagonal Core
+*   **Domain Layer** (`internal/domain`): Pure logic. Defines `Mission`, `Agent`, and `CloudEvent` contracts.
+*   **Adapters** (`internal/adapter`): Connects to the world.
+    *   **EventBus**: MQTT Client (Paho) for receiving Sensor Data.
+    *   **Store**: Persistence for active workflows.
+*   **Service Layer** (`internal/service`): The `MissionManager` that routes Events to Agents.
+
+### 2. The Agent Execution Spectrum
+Agents interact in 3 modes, rigorously typed in the Domain:
+1.  **Reporting**: Telemetry/Logs (`agent.log`). Fire-and-forget.
+2.  **Communicating**: Inter-agent Signals (`agent.signal`). Coordination.
+3.  **Expressing**: Structured Artifacts (`data.report`). Final output.
+
+### 3. Extensibility
+*   **New Inputs**: Core subscribes to wildcard topics (`sensor/#`).
+*   **New Agents**: Implements the `Agent` interface (`Execute(ctx, event)`).
+
+---
+
+## 🛡️ Secure Self-Hosted Architecture (The "Ultrathink")
+
+Deleggit is architected for **Zero Trust Local** execution.
+
+*   **Isolation**: Services run in strictly isolated containers (Docker).
+*   **Ingress Control**: No direct port exposure. Traffic flows through a Reverse Proxy.
+*   **Least Privilege**:
+    *   **Frontend**: Static Nginx build (No Node.js runtime in prod).
+    *   **Backend**: Distroless Go binary.
+    *   **Broker**: Mosquitto with explicit ACLs.
+
+### 🛠️ Development Workflow
+We adhere to a standardized `Makefile` workflow to ensure environment consistency.
+
+**Prerequisites**: Docker Desktop, Go 1.22+, Node.js 20+.
+
+```bash
+# 1. Install Dependencies
+make install
+
+# 2. Start Full Stack (Default Ports)
+# Launches UI (localhost:5173) and Device Mock
+make dev
+
+# 3. Clean Environment (Kill conflicting processes)
+make clean
+
+# 4. Start Individual Components
+make ui    # Frontend only
+make mock  # Backend Mock only
+```
+
+---
+
 ## 🛠️ Development Workflow (Local-First)
 We prioritize **Localhost execution** over containerization during the "Incubation" phase.
 
-### Phase 1: The Vertical Slice (Current)
+### Phase 1.5: Platform Dashboard (Current)
 1.  **Start Broker**: `docker compose up -d mosquitto` (Ports: `1883`, `9001`)
-2.  **Start UI**: `cd ui && npm run dev` (Localhost: `5173`)
-3.  **Start Mock Sensor**: `go run ./bin/device-mock` (Publishes to `sensor/cpu/temp`)
+2.  **Start UI**: `cd ui && npm run dev` (Localhost: `5174`)
+3.  **Start Mock System**: `go run ./bin/device-mock` (Simulates Hardware + Agents + Repo)
 
 ### Phase 2: K8s Deployment (Future)
 *   Containerize `/core` and `/ui`.
