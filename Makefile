@@ -1,14 +1,16 @@
 # Deleggit Development Makefile
 # Standardized workflow for local development
 
-.PHONY: dev clean ui mock install help
+.PHONY: dev clean ui mock install help core test
 
 help:
 	@echo "Deleggit Dev Environment"
 	@echo "  make dev      - Start the full stack (UI + Device Mock) on default ports"
 	@echo "  make clean    - Kill all Deleggit-related processes and free ports"
 	@echo "  make ui       - Start only the Frontend (localhost:5173)"
-	@echo "  make mock     - Start only the Device Bridge Mock"
+	@echo "  make mock     - Start only the Backend Mock"
+	@echo "  make core     - Start the Core Service"
+	@echo "  make test     - Run all Core Unit Tests"
 	@echo "  make install  - Install all dependencies"
 
 # Install dependencies (One-time setup)
@@ -40,3 +42,12 @@ ui:
 # Start only the Backend Mock
 mock:
 	bin\device-mock\device-mock.exe
+
+# Start the Core Service
+core:
+	cd core && go run cmd/server/main.go
+
+# Run Tests
+test:
+	cd core && go test ./... -v
+

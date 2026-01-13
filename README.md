@@ -68,19 +68,26 @@ We utilize a virtual "Swarm" of specialized agent personas to execute this proje
 The `deleggit-core` service is the central nervous system, built on a **Hexagonal Architecture** to ensure extensibility.
 
 ### 1. The Hexagonal Core
-*   **Domain Layer** (`internal/domain`): Pure logic. Defines `Mission`, `Agent`, and `CloudEvent` contracts.
-*   **Adapters** (`internal/adapter`): Connects to the world.
-    *   **EventBus**: MQTT Client (Paho) for receiving Sensor Data.
-    *   **Store**: Persistence for active workflows.
-*   **Service Layer** (`internal/service`): The `MissionManager` that routes Events to Agents.
+*   **Domain Layer** (`internal/domain`): [x] Contracts Defined (`CloudEvent`, `Agent`).
+*   **Adapters** (`internal/adapter`):
+    *   **EventBus**: [x] MQTT Client (Paho) Connected.
+    *   **Store**: [ ] Persistence for active workflows.
+*   **Service Layer** (`internal/service`):
+    *   **MissionManager**: [x] Routing Logic Verified.
+    *   **AgentRegistry**: [x] Plugin Loading (Concurrency Safe).
 
 ### 2. The Agent Execution Spectrum
 Agents interact in 3 modes, rigorously typed in the Domain:
-1.  **Reporting**: Telemetry/Logs (`agent.log`). Fire-and-forget.
-2.  **Communicating**: Inter-agent Signals (`agent.signal`). Coordination.
+1.  **Reporting**: Telemetry/Logs (`agent.log`). Fire-and-forget. Verified via `ConsoleReporter`.
+2.  **Communicating**: Inter-agent Signals (`agent.signal`). Verified via `TrendScout`.
 3.  **Expressing**: Structured Artifacts (`data.report`). Final output.
 
-### 3. Extensibility
+### 3. Quality Assurance
+*   **Unit Tests**: Comprehensive Go test suite for Domain, Service, and Agents.
+    *   Run tests: `make test`
+    *   Coverage: Event Marshaling, Registry Concurrency, Mission Routing, Anomaly Detection.
+
+### 4. Extensibility
 *   **New Inputs**: Core subscribes to wildcard topics (`sensor/#`).
 *   **New Agents**: Implements the `Agent` interface (`Execute(ctx, event)`).
 
