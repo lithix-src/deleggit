@@ -7,6 +7,8 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 // SensorData adheres to the CloudEvents-like structure
@@ -27,18 +29,34 @@ func main() {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
-	fmt.Println("Connected to Mosquitto. Starting Catalyst Simulation...")
+	fmt.Println("Connected to Mosquitto. Starting Real Hardware Telemetry...")
 
-	// 1. Hardware Sensor Loop (Fast)
+	// 1. Real CPU Sensor Loop
 	go func() {
 		ticker := time.NewTicker(2 * time.Second)
 		for range ticker.C {
-			temp := 45.0 + rand.Float64()*10.0
-			emit(client, "sensor/cpu/temp", "sensor.cpu.temp", map[string]interface{}{"value": temp, "unit": "C"})
+			// Get total CPU usage (false = all cores aggregated)
+			c, err := cpu.Percent(0, false)
+			if err == nil && len(c) > 0 {
+				// Note: using 'value' key to match UI expectation
+				// UI expects Key "value" for the chart
+				emit(client, "sensor/cpu/temp", "sensor.cpu.usage", map[string]interface{}{"value": c[0], "unit": "%"})
+			}
 		}
 	}()
 
-	// 2. Agent Log Loop (Bursty)
+	// 1.5 Real Memory Sensor Loop
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		for range ticker.C {
+			v, err := mem.VirtualMemory()
+			if err == nil {
+				emit(client, "sensor/memory/usage", "sensor.memory.usage", map[string]interface{}{"value": v.UsedPercent, "unit": "%"})
+			}
+		}
+	}()
+
+	// 2. Agent Log Loop (Still Simulated for now)
 	go func() {
 		agents := []string{"Interface", "Orchestrator", "Infrastructure", "Compliance", "Simulation"}
 		actions := []string{"Optimizing", "Compiling", "Provisioning", "Verifying", "Simulating"}
@@ -56,7 +74,7 @@ func main() {
 		}
 	}()
 
-	// 3. Repo Event Loop (Rare)
+	// 3. Repo Event Loop (Simulated Bridge to Real URLs)
 	go func() {
 		repos := []string{"catalyst/ui", "catalyst/core", "catalyst/infra"}
 		for {
@@ -85,5 +103,5 @@ func emit(client mqtt.Client, topic string, eventType string, data interface{}) 
 	bytes, _ := json.Marshal(payload)
 	token := client.Publish(topic, 0, false, bytes)
 	token.Wait()
-	fmt.Printf("> Sent %s: %s\n", topic, eventType)
+	// fmt.Printf("> Sent %s: %s\n", topic, eventType) // Reduce spam
 }
