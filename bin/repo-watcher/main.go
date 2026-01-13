@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
+	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,16 +15,13 @@ import (
 )
 
 var (
-	brokerURL = "tcp://localhost:1883"
-	clientID  = "catalyst-repo-watcher"
-	topics    = []string{
-		"repo/lithix-src/deleggit/push",
-		"repo/lithix-src/deleggit/issue",
-		"repo/lithix-src/deleggit/pr",
-	}
+	brokerURL  = "tcp://localhost:1883"
+	clientID   = "catalyst-repo-watcher"
+	repoPath   = "../../"              // Assuming running from bin/repo-watcher or root via make
+	remoteName = "lithix-src/deleggit" // Default, can be parsed from git remote
 )
 
-// GitHubEvent simulates a GitHub API response
+// GitHubEvent structure
 type GitHubEvent struct {
 	Type   string
 	Repo   string
@@ -34,7 +32,7 @@ type GitHubEvent struct {
 }
 
 func main() {
-	log.Println("[RepoWatcher] Starting Smart Poller...")
+	log.Println("[RepoWatcher] Starting Real Git Poller...")
 
 	// 1. MQTT Setup
 	opts := mqtt.NewClientOptions()
@@ -47,11 +45,11 @@ func main() {
 	}
 	log.Println("[RepoWatcher] Connected to Event Bus")
 
-	// 2. State Tracking
-	lastSeenSHA := "initial-sha" // In real app, load from DB
+	// 2. Initial State
+	lastHash := getGitHeadHash()
+	log.Printf("[RepoWatcher] Monitoring from Hash: %s", lastHash)
 
 	// 3. Polling Loop
-	// We poll frequently (every 5s), but only EMIT on change.
 	ticker := time.NewTicker(5 * time.Second)
 	quit := make(chan struct{})
 
@@ -59,20 +57,23 @@ func main() {
 		for {
 			select {
 			case <-ticker.C:
-				// SIMULATE: Check for changes
-				// In a real implementation, this would be:
-				// commits, err := github.ListCommits(since=lastSeenSHA)
+				currentHash := getGitHeadHash()
+				if currentHash != "" && currentHash != lastHash {
+					log.Printf("[RepoWatcher] Change Detected! %s -> %s", lastHash, currentHash)
 
-				if shouldTriggerChange() {
-					evt := generateRandomEvent()
-
-					// Dedup check (Simulated)
-					if evt.Ref == lastSeenSHA {
-						continue
+					// Fetch Commit Details
+					details := getCommitDetails(currentHash)
+					evt := GitHubEvent{
+						Type:   "repo.push",
+						Repo:   remoteName,
+						Title:  details.Message,
+						Ref:    currentHash,
+						Author: details.Author,
+						URL:    fmt.Sprintf("https://github.com/%s/commit/%s", remoteName, currentHash),
 					}
-					lastSeenSHA = evt.Ref
 
 					publishEvent(client, evt)
+					lastHash = currentHash
 				}
 			case <-quit:
 				ticker.Stop()
@@ -91,57 +92,38 @@ func main() {
 	client.Disconnect(250)
 }
 
-// shouldTriggerChange simulates the rarity of real events.
-// Returns true only 20% of the time to avoid spam.
-func shouldTriggerChange() bool {
-	return rand.Float32() < 0.2
+func getGitHeadHash() string {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
+	if err != nil {
+		log.Printf("Error getting git head: %v", err)
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
-func generateRandomEvent() GitHubEvent {
-	eventTypes := []string{"push", "issue", "pr"}
-	chosenType := eventTypes[rand.Intn(len(eventTypes))]
+type CommitDetails struct {
+	Author  string
+	Message string
+}
 
-	ref := fmt.Sprintf("sha-%d", time.Now().UnixNano())
-
-	// Use REAL repo name from git remote
-	repoName := "lithix-src/deleggit"
-
-	switch chosenType {
-	case "push":
-		return GitHubEvent{
-			Type:   "repo.push",
-			Repo:   repoName,
-			Title:  fmt.Sprintf("feat: update core logic %s", ref[:8]),
-			Ref:    ref,
-			Author: "direct_architect",
-			// Link to Commits History (Always works)
-			URL: fmt.Sprintf("https://github.com/%s/commits/main", repoName),
-		}
-	case "issue":
-		return GitHubEvent{
-			Type:   "repo.issue",
-			Repo:   repoName,
-			Title:  "bug: race condition in event bus",
-			Ref:    ref,
-			Author: "qa-bot",
-			// Link to Issues Index (Always works)
-			URL: fmt.Sprintf("https://github.com/%s/issues", repoName),
-		}
-	default:
-		return GitHubEvent{
-			Type:   "repo.pr",
-			Repo:   repoName,
-			Title:  "chore: bump dependencies",
-			Ref:    ref,
-			Author: "dependabot",
-			// Link to PR Index (Always works)
-			URL: fmt.Sprintf("https://github.com/%s/pulls", repoName),
-		}
+func getCommitDetails(hash string) CommitDetails {
+	// git log -1 --format="%an|%s" hash
+	cmd := exec.Command("git", "log", "-1", "--format=%an|%s", hash)
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
+	if err != nil {
+		return CommitDetails{Author: "Unknown", Message: "Update"}
 	}
+	parts := strings.SplitN(strings.TrimSpace(string(out)), "|", 2)
+	if len(parts) < 2 {
+		return CommitDetails{Author: "Unknown", Message: string(out)}
+	}
+	return CommitDetails{Author: parts[0], Message: parts[1]}
 }
 
 func publishEvent(client mqtt.Client, evt GitHubEvent) {
-	// Construct CloudEvent
 	payload := map[string]interface{}{
 		"id":          fmt.Sprintf("evt-%d", time.Now().UnixNano()),
 		"source":      "repo-watcher",
@@ -162,5 +144,5 @@ func publishEvent(client mqtt.Client, evt GitHubEvent) {
 
 	token := client.Publish(topic, 0, false, bytes)
 	token.Wait()
-	log.Printf("[RepoWatcher] >>> NEW EVENT: %s | %s", evt.Type, evt.Title)
+	log.Printf("[RepoWatcher] >>> NEW REAL CHANGE: %s", evt.Title)
 }
