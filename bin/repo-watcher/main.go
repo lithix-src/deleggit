@@ -17,9 +17,9 @@ var (
 	brokerURL = "tcp://localhost:1883"
 	clientID  = "catalyst-repo-watcher"
 	topics    = []string{
-		"repo/lithix-src/catalyst/push",
-		"repo/lithix-src/catalyst/issue",
-		"repo/lithix-src/catalyst/pr",
+		"repo/lithix-src/deleggit/push",
+		"repo/lithix-src/deleggit/issue",
+		"repo/lithix-src/deleggit/pr",
 	}
 )
 
@@ -30,6 +30,7 @@ type GitHubEvent struct {
 	Title  string
 	Ref    string
 	Author string
+	URL    string
 }
 
 func main() {
@@ -102,30 +103,39 @@ func generateRandomEvent() GitHubEvent {
 
 	ref := fmt.Sprintf("sha-%d", time.Now().UnixNano())
 
+	// Use REAL repo name from git remote
+	repoName := "lithix-src/deleggit"
+
 	switch chosenType {
 	case "push":
 		return GitHubEvent{
 			Type:   "repo.push",
-			Repo:   "lithix-src/catalyst",
+			Repo:   repoName,
 			Title:  fmt.Sprintf("feat: update core logic %s", ref[:8]),
 			Ref:    ref,
 			Author: "direct_architect",
+			// Link to Commits History (Always works)
+			URL: fmt.Sprintf("https://github.com/%s/commits/main", repoName),
 		}
 	case "issue":
 		return GitHubEvent{
 			Type:   "repo.issue",
-			Repo:   "lithix-src/catalyst",
+			Repo:   repoName,
 			Title:  "bug: race condition in event bus",
 			Ref:    ref,
 			Author: "qa-bot",
+			// Link to Issues Index (Always works)
+			URL: fmt.Sprintf("https://github.com/%s/issues", repoName),
 		}
 	default:
 		return GitHubEvent{
 			Type:   "repo.pr",
-			Repo:   "lithix-src/catalyst",
+			Repo:   repoName,
 			Title:  "chore: bump dependencies",
 			Ref:    ref,
 			Author: "dependabot",
+			// Link to PR Index (Always works)
+			URL: fmt.Sprintf("https://github.com/%s/pulls", repoName),
 		}
 	}
 }
@@ -143,11 +153,12 @@ func publishEvent(client mqtt.Client, evt GitHubEvent) {
 			"title":  evt.Title,
 			"author": evt.Author,
 			"ref":    evt.Ref,
+			"url":    evt.URL,
 		},
 	}
 
 	bytes, _ := json.Marshal(payload)
-	topic := fmt.Sprintf("repo/%s/%s", "catalyst", "event") // Standardized topic for now
+	topic := fmt.Sprintf("repo/%s/%s", "catalyst", "event")
 
 	token := client.Publish(topic, 0, false, bytes)
 	token.Wait()
