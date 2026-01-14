@@ -21,6 +21,14 @@ help:
 install:
 	cd ui && npm install
 
+# --- Standardization ---
+lint: ## Enforce Engineering Standards (Go & TS)
+	@echo "Checking Frontend Standards..."
+	cd ui && npm run lint
+	@echo "Checking Backend Standards..."
+	go fmt ./...
+	@echo "Standards verification complete."
+
 # Clean up all ports and processes
 clean:
 	@echo "Cleaning up environment..."
@@ -68,14 +76,16 @@ test:
 # Infrastructure (Kind & Docker)
 # ------------------------------------
 
-# Spin up Local Kubernetes Cluster (Postgres + Mosquitto)
+# Spin up Local Kubernetes Cluster (Postgres + Mosquitto + Observability)
 cluster-up:
 	kind create cluster --config deploy/k8s/kind-config.yaml --name catalyst-local
 	kubectl apply -f deploy/k8s/namespace.yaml
 	kubectl apply -f deploy/k8s/postgres.yaml
 	kubectl apply -f deploy/k8s/mosquitto.yaml
+	kubectl apply -f deploy/k8s/observability.yaml
 	@echo "⏳ Waiting for Pods..."
 	kubectl get pods -n catalyst-local -w
+
 
 # Tear down Cluster
 cluster-down:

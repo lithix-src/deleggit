@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "catalyst-mock"
+    static_configs:
+      - targets: ["host.docker.internal:8081"] # device-mock metrics
+
+  - job_name: "catalyst-docker"
+    static_configs:
+      - targets: ["host.docker.internal:8084"]
+  # docker-watcher metrics

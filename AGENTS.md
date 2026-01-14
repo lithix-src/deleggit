@@ -1,6 +1,7 @@
 # Catalyst Engineering Team (Automated)
 
 > **Protocol**: `~/.gemini/docs/message-protocol.md`
+> **Standards**: `docs/STANDARDS.md` (Global Engineering Standards)
 > **Session**: `orch:catalyst_startup`
 
 ## Automated Functional Roles

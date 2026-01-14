@@ -35,12 +35,16 @@ func main() {
 	go func() {
 		ticker := time.NewTicker(2 * time.Second)
 		for range ticker.C {
-			// Get total CPU usage (false = all cores aggregated)
+			// Get total CPU usage
 			c, err := cpu.Percent(0, false)
 			if err == nil && len(c) > 0 {
-				// Note: using 'value' key to match UI expectation
-				// UI expects Key "value" for the chart
-				emit(client, "sensor/cpu/temp", "sensor.cpu.usage", map[string]interface{}{"value": c[0], "unit": "%"})
+				// Emit Usage
+				emit(client, "sensor/cpu/usage", "sensor.cpu.usage", map[string]interface{}{
+					"value": c[0],
+					"unit":  "%",
+					"label": "CPU Load",
+					"meta":  map[string]string{"status": "nominal"},
+				})
 			}
 		}
 	}()
@@ -51,7 +55,13 @@ func main() {
 		for range ticker.C {
 			v, err := mem.VirtualMemory()
 			if err == nil {
-				emit(client, "sensor/memory/usage", "sensor.memory.usage", map[string]interface{}{"value": v.UsedPercent, "unit": "%"})
+				// Log to console to debug 0.0 issue
+				// fmt.Printf("Mem: Total=%v, Used=%v, Percent=%v\n", v.Total, v.Used, v.UsedPercent)
+				emit(client, "sensor/memory/usage", "sensor.memory.usage", map[string]interface{}{
+					"value": v.UsedPercent,
+					"unit":  "%",
+					"label": "Memory Usage",
+				})
 			}
 		}
 	}()

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { SensorGrid } from "./features/dashboard/SensorGrid";
 import { Sidebar } from "./components/layout/Sidebar";
 import { ActiveAgents } from "./features/dashboard/ActiveAgents";
+import { ContainerGrid } from "./features/dashboard/ContainerGrid";
+import { GenericSensorGrid } from "./features/dashboard/GenericSensorGrid";
 import { RepoFeed } from "./features/dashboard/RepoFeed";
 
 function App() {
@@ -34,7 +36,13 @@ function App() {
                 {/* Row 1: Hardware Metrics */}
                 <div>
                   <h2 className="text-sm font-mono text-slate-500 mb-2 uppercase tracking-wider">Hardware Telemetry</h2>
-                  <SensorGrid />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+                    <SensorGrid />
+                    <ContainerGrid />
+                  </div>
+
+                  {/* Dynamic Grid (V2) */}
+                  <GenericSensorGrid />
                 </div>
 
                 {/* Row 2: Agent Swarm & External Events */}
