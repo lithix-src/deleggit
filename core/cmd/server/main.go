@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -14,6 +15,7 @@ import (
 	"github.com/datacraft/catalyst/core/internal/service"
 	"github.com/point-unknown/catalyst/pkg/env"
 	"github.com/point-unknown/catalyst/pkg/logger"
+	"github.com/point-unknown/catalyst/pkg/mcp"
 )
 
 var (
@@ -31,7 +33,8 @@ func main() {
 	// ==========================================
 
 	// A. Registry
-	registry := service.NewAgentRegistry()
+	// A. Registry
+	agentRegistryService := service.NewAgentRegistry()
 
 	// 1.5 Data Store (PostgreSQL)
 	// User NodePort 30000 -> 5432
@@ -62,25 +65,37 @@ func main() {
 		Log.Info("✅ [LLM] Connected", "endpoint", llmCfg.Endpoint)
 	}
 
+	// 1.7 MCP Registry (The "Hands")
+	registry := mcp.NewLocalRegistry()
+	registry.Register(mcp.Tool{
+		Name:        "git_create_issue",
+		Description: "Create a new issue in the repository",
+		Parameters:  json.RawMessage(`{"type": "object", "properties": {"title": {"type": "string"}, "body": {"type": "string"}}, "required": ["title", "body"]}`),
+	})
+	registry.Register(mcp.Tool{
+		Name:        "pipeline_list",
+		Description: "List available CI/CD pipelines",
+		Parameters:  json.RawMessage(`{"type": "object", "properties": {}, "required": []}`),
+	})
+	registry.Register(mcp.Tool{
+		Name:        "pipeline_run",
+		Description: "Trigger a CI/CD pipeline",
+		Parameters:  json.RawMessage(`{"type": "object", "properties": {"workflow": {"type": "string"}}, "required": ["workflow"]}`),
+	})
+	Log.Info("✅ [MCP] Local Registry Initialized", "tools", 1)
+
 	// B. Register Standard Agents (Dynamic Loader)
 	configFile := env.Get("CATALYST_CONFIG_PATH", "../../config/agents.yaml")
 
-	loadedAgents, loadedMissions, err := service.LoadAgents(configFile, llmProvider)
+	loadedAgents, loadedMissions, err := service.LoadAgents(configFile, llmProvider, registry)
 	if err != nil {
 		Log.Warn("⚠️ [LOADER] Failed to load agents.yaml. Running without agents.", "error", err)
 	} else {
 		for _, a := range loadedAgents {
-			registry.Register(a)
+			// Register agent to the AgentRegistry Service
+			agentRegistryService.Register(a)
 			Log.Info("Registered Agent", "id", a.ID(), "type", a.Type())
 		}
-	}
-
-	// C. Mission Manager (Orchestrator)
-	missionMgr := service.NewMissionManager(registry)
-
-	// D. Load Missions (Configuration)
-	for _, m := range loadedMissions {
-		missionMgr.LoadMission(m)
 	}
 
 	// ==========================================
@@ -95,6 +110,20 @@ func main() {
 	}
 	defer mqttClient.Close()
 	Log.Info("Connected to MQTT Broker")
+
+	// C. Mission Manager (Orchestrator)
+	// Wrapper for MQTT Publish to match signature
+	publisher := func(topic string, event domain.CloudEvent) {
+		if err := mqttClient.Publish(topic, event); err != nil {
+			Log.Warn("Failed to publish event from MissionManager", "topic", topic, "error", err)
+		}
+	}
+	missionMgr := service.NewMissionManager(agentRegistryService, publisher)
+
+	// D. Load Missions (Configuration)
+	for _, m := range loadedMissions {
+		missionMgr.LoadMission(m)
+	}
 
 	// B. Subscribe Routes
 	// Route all sensor data to the Mission Manager

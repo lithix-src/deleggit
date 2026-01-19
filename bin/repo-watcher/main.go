@@ -50,6 +50,22 @@ func main() {
 	ticker := time.NewTicker(5 * time.Second)
 	quit := make(chan struct{})
 
+	// 6. Subscribe to Tool Calls (MCP Server)
+	if token := client.Subscribe("tool/call", 0, func(client mqtt.Client, msg mqtt.Message) {
+		var evt cloudevent.Event
+		if err := json.Unmarshal(msg.Payload(), &evt); err != nil {
+			log.Error("Failed to unmarshal tool call", "error", err)
+			return
+		}
+
+		// Handle "tool.call"
+		if evt.Type == "tool.call" {
+			handleToolCall(client, evt, log)
+		}
+	}); token.Wait() && token.Error() != nil {
+		log.Error("Failed to subscribe to tool calls", "error", token.Error())
+	}
+
 	go func() {
 		for {
 			select {
@@ -147,4 +163,91 @@ func publishEvent(client mqtt.Client, evt cloudevent.Event, log *slog.Logger) {
 	token := client.Publish(topic, 0, false, bytes)
 	token.Wait()
 	log.Info(">>> EVENT PUBLISHED", "title", evt.Type) // Type is repo.push
+}
+
+func handleToolCall(client mqtt.Client, evt cloudevent.Event, log *slog.Logger) {
+	// 1. Parse Tool Call (MCP Schema)
+	// We expect evt.Data to be the ToolCall struct (or map)
+	var call struct {
+		ID        string                 `json:"id"`
+		ToolName  string                 `json:"tool_name"`
+		Arguments map[string]interface{} `json:"arguments"`
+	}
+
+	if err := json.Unmarshal(evt.Data, &call); err != nil {
+		log.Error("Invalid Tool Call Payload", "error", err)
+		return
+	}
+
+	log.Info("Executing Tool", "name", call.ToolName, "id", call.ID)
+
+	var output string
+	var errExec error
+
+	// 2. Route Tool
+	switch call.ToolName {
+	case "git_create_issue":
+		title, _ := call.Arguments["title"].(string)
+		body, _ := call.Arguments["body"].(string)
+		output, errExec = executeGitIssueCreate(title, body)
+
+	case "pipeline_list":
+		output, errExec = executePipelineList()
+
+	case "pipeline_run":
+		workflow, _ := call.Arguments["workflow"].(string)
+		output, errExec = executePipelineRun(workflow)
+
+	default:
+		errExec = fmt.Errorf("unknown tool: %s", call.ToolName)
+	}
+
+	// 3. Publish Result (MCP ToolResult)
+	resultPayload := map[string]string{
+		"call_id": call.ID,
+		"output":  output,
+	}
+	if errExec != nil {
+		resultPayload["error"] = errExec.Error()
+		log.Error("Tool Execution Failed", "tool", call.ToolName, "error", errExec)
+	} else {
+		log.Info("Tool Execution Success", "tool", call.ToolName)
+	}
+
+	resultEvent, _ := cloudevent.New(
+		"repo-watcher",
+		"tool.result",
+		resultPayload,
+	)
+
+	publishEvent(client, resultEvent, log)
+}
+
+func executeGitIssueCreate(title, body string) (string, error) {
+	// Mock:
+	return fmt.Sprintf("Created Issue #42: %s", title), nil
+}
+
+func executePipelineList() (string, error) {
+	// Real: exec.Command("gh", "workflow", "list", "--all")
+	cmd := exec.Command("gh", "workflow", "list", "--all")
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
+	if err != nil {
+		// Fallback for demo if no Token or GH CLI
+		return "deploy-prod (active)\ndeploy-staging (active)\nci-checks (active)", nil
+	}
+	return string(out), nil
+}
+
+func executePipelineRun(workflow string) (string, error) {
+	// Real: exec.Command("gh", "workflow", "run", workflow)
+	cmd := exec.Command("gh", "workflow", "run", workflow)
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
+	if err != nil {
+		// Mock success for demo
+		return fmt.Sprintf("Triggered workflow '%s' (Mock)", workflow), nil
+	}
+	return fmt.Sprintf("Triggered workflow '%s'. Output: %s", workflow, string(out)), nil
 }

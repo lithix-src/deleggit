@@ -34,10 +34,14 @@ func TestMissionManager_ProcessEvent(t *testing.T) {
 	registry.Register(mockAgent)
 
 	// Setup Manager
-	mgr := NewMissionManager(registry)
+	// Mock Publisher
+	publisher := func(topic string, event domain.CloudEvent) {
+		// Do nothing or record calls
+	}
+	manager := NewMissionManager(registry, publisher)
 
 	// Load Mission: "sensor/test" -> "TestAgent"
-	mgr.LoadMission(domain.Mission{
+	manager.LoadMission(domain.Mission{
 		ID:           "m1",
 		Name:         "Test Mission",
 		TriggerTopic: "sensor/test",
@@ -46,7 +50,7 @@ func TestMissionManager_ProcessEvent(t *testing.T) {
 
 	// Scenario 1: Matching Event
 	evt1, _ := domain.NewEvent("source1", "sensor/test", nil)
-	mgr.ProcessEvent(evt1)
+	manager.ProcessEvent(evt1)
 
 	if !mockAgent.executed {
 		t.Errorf("Expected agent to execute for matching triggering topic")
@@ -60,7 +64,7 @@ func TestMissionManager_ProcessEvent(t *testing.T) {
 
 	// Scenario 2: Non-matching Event
 	evt2, _ := domain.NewEvent("source1", "sensor/other", nil)
-	mgr.ProcessEvent(evt2)
+	manager.ProcessEvent(evt2)
 
 	if mockAgent.executed {
 		t.Errorf("Agent executed for non-matching topic")

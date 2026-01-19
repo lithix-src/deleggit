@@ -68,7 +68,17 @@ We utilize a virtual "Swarm" of specialized agent personas to execute this proje
 *   **Features**:
     *   **Smart Polling**: Stateful Change Detection (No polling spam).
     *   **Rich Events**: Distinguishes between `repo.push`, `repo.pr`, and `repo.issue`.
-    *   **Status**: Active (`bin/repo-watcher`).
+### 6. `Liaison` (Head of Communications)
+*   **Role**: Human-Swarm Interface.
+*   **Mission**: Interpret natural language intent and execute tool calls.
+*   **Capabilities**: `git_create_issue`, `pipeline.run`.
+*   **Status**: Active (`core` internal agent).
+
+### 7. `PipelineArchitect` (CI/CD Specialist)
+*   **Role**: Pipeline Engineering.
+*   **Mission**: Create, Manage, and Execute GitHub Workflows.
+*   **Capabilities**: `pipeline.list`, `pipeline.read`, `pipeline.save`, `pipeline.run`.
+*   **Status**: Active (`core` internal agent).
 
 ---
 
@@ -76,19 +86,26 @@ We utilize a virtual "Swarm" of specialized agent personas to execute this proje
 The `catalyst-core` service is the central nervous system, built on a **Hexagonal Architecture**.
 
 ### 1. The Hexagonal Core
-*   **Domain Layer** (`internal/domain`): [x] Contracts Defined (`CloudEvent`, `Agent`).
+*   **Domain Layer** (`internal/domain`): [x] Contracts Defined (`cloudevent`, `Agent`).
 *   **Adapters** (`internal/adapter`):
     *   **EventBus**: [x] MQTT Client (Paho) Connected.
-    *   **Store**: [x] Postgres Persistence (Event Logging).
+    *   **Store**: [x] Postgres Persistence (pgvector ready).
+    *   **LLM**: [x] OpenAI/Ollama Adapter (RAG Integration).
 *   **Service Layer** (`internal/service`):
     *   **MissionManager**: [x] Routing Logic Verified.
     *   **AgentRegistry**: [x] Plugin Loading (Concurrency Safe).
+    *   **GroupChatManager**: [x] Conversational Orchestrator.
+*   **Shared SDK** (`pkg/`):
+    *   **CloudEvent**: Unified Data Protocol.
+    *   **Logger**: Standardized JSON Logging.
+    *   **MCP**: Catalyst Tool Protocol (Model Context Protocol).
 
 ### 2. The Agent Execution Spectrum
 Agents interact in 3 modes, rigorously typed in the Domain:
 1.  **Reporting**: Telemetry/Logs (`agent.log`). Fire-and-forget.
 2.  **Communicating**: Inter-agent Signals (`agent.signal`).
 3.  **Expressing**: Structured Artifacts (`data.report`). Final output.
+4.  **Tooling**: Direct Action (`tool.call`). Side-effect execution.
 
 ---
 
@@ -109,14 +126,17 @@ We adhere to a standardized `Makefile` workflow.
 # 1. Install Dependencies & Tools
 make install
 
-# 2. Start Full Stack (Localhost)
+# 2. Standards Verification (Run before PRs)
+make sdk-check
+
+# 3. Start Full Stack (Localhost)
 # Launches UI (localhost:5173), Core Service, Device Mock, and Repo Watcher
 make dev
 
-# 3. Clean Environment (Kill processes, prune containers)
+# 4. Clean Environment (Kill processes, prune containers)
 make clean
 
-# 4. Infrastructure Management
+# 5. Infrastructure Management
 make cluster-up   # Start Kind Cluster (DB/Broker)
 make cluster-down # Destroy Cluster
 ```
@@ -124,10 +144,12 @@ make cluster-down # Destroy Cluster
 ---
 
 ## 📂 Repository Structure
+*   `/pkg`: **Catalyst SDK** (Shared Libraries for Events/Logs/MCP).
 *   `/ui`: The React Frontend Application (`Interface`).
-*   `/core`: The central Go Orchestrator (`Orchestrator`).
+*   `/core`: The central Go Orchestrator (`Orchestrator`) with RAG.
 *   `/bin`:
     *   `device-mock`: Hardware simulator (`Simulation`).
-    *   `repo-watcher`: GitHub connectivity service (`Watcher`).
+    *   `repo-watcher`: GitHub connectivity & Pipeline Execution service (`Watcher`).
+    *   `docker-watcher`: Local Docker state monitor (`Infrastructure`).
 *   `/deploy`: Kubernetes Manifests and Docker configs (`Infrastructure`).
 *   `/docs`: Architecture Decision Records (ADRs).

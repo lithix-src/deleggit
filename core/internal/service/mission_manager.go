@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/datacraft/catalyst/core/internal/domain"
@@ -11,12 +12,14 @@ import (
 type MissionManager struct {
 	registry *AgentRegistry
 	missions []domain.Mission
+	publish  func(topic string, event domain.CloudEvent)
 }
 
-func NewMissionManager(registry *AgentRegistry) *MissionManager {
+func NewMissionManager(registry *AgentRegistry, publisher func(topic string, event domain.CloudEvent)) *MissionManager {
 	return &MissionManager{
 		registry: registry,
 		missions: make([]domain.Mission, 0),
+		publish:  publisher,
 	}
 }
 
@@ -62,6 +65,15 @@ func (m *MissionManager) executeMission(mission domain.Mission, trigger domain.C
 		if output != nil {
 			currentPayload = *output
 			log.Printf("[EXEC] Agent '%s' produced output type: %s", agent.ID(), output.Type)
+
+			// Publish the output side-effect
+			topic := output.Type // Default fallback
+			if output.Type == "tool.call" {
+				topic = "tool/call"
+			} else {
+				topic = fmt.Sprintf("agent/%s/output", agent.ID())
+			}
+			m.publish(topic, *output)
 		}
 	}
 }

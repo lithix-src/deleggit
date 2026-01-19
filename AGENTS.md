@@ -31,6 +31,16 @@
 **Focus**: Integration Testing, Log Verification, Security Compliance.
 **Responsibility**: Validating system integrity and test coverage.
 
+### `ops:liaison:01` (Service: "Liaison")
+**Role**: Human-Swarm Interface
+**Focus**: Intent Interpretation, Tool Dispatch, ChatOps.
+**Responsibility**: Translate "Deploy Staging" into `pipeline.run('staging')`.
+
+### `eng:pipeline:01` (Service: "PipelineArchitect")
+**Role**: CI/CD Engineering
+**Focus**: Workflow Authoring, Build Execution, Pipeline Optimization.
+**Responsibility**: Create and Manage `.github/workflows`.
+
 ## 2. Engineering Standards (The "Rigid Core")
 All agents MUST adhere to the **Catalyst SDK** pattern:
 1.  **Imports**: Use `github.com/point-unknown/catalyst/pkg/...` for Logging, Env, and CloudEvents.

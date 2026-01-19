@@ -21,6 +21,18 @@ agents:
       denied_patterns: [".env", "id_rsa"]
       read_only: false
 
+  - id: "Liaison"
+    type: "liaison"
+    config: {}
+    safety:
+      read_only: false
+
+  - id: "PipelineArchitect"
+    type: "liaison" # Reusing Liaison type for now as it supports MCP tools
+    config: {}
+    safety:
+      read_only: false
+
 missions:
   - id: "mission-001"
     name: "Hardware Telemetry Watch"
@@ -31,3 +43,13 @@ missions:
     name: "Swarm Activity Stream"
     trigger_topic: "agent/+/log"
     agents: ["SwarmLog"]
+
+  - id: "mission-pipeline"
+    name: "Pipeline Architecture"
+    trigger_topic: "agent.pipeline.wake"
+    agents: ["PipelineArchitect"]
+
+  - id: "mission-chat"
+    name: "ChatOps Liaison"
+    trigger_topic: "agent.liaison.wake" # Exact Type Match
+    agents: ["Liaison"]
