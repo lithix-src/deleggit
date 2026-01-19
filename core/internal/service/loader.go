@@ -8,11 +8,12 @@ import (
 	"github.com/datacraft/catalyst/core/internal/adapter/workspace"
 	"github.com/datacraft/catalyst/core/internal/domain"
 	"github.com/point-unknown/catalyst/pkg/mcp"
+	"github.com/point-unknown/catalyst/pkg/vector"
 	"gopkg.in/yaml.v3"
 )
 
 // AgentFactory creates an agent instance from configuration.
-func AgentFactory(cfg domain.AgentConfig, llm domain.LLMProvider) (domain.Agent, error) {
+func AgentFactory(cfg domain.AgentConfig, llm domain.LLMProvider, registry mcp.Registry, vecStore vector.Store) (domain.Agent, error) {
 	switch cfg.Type {
 	case "trend-scout":
 		threshold := 80.0
@@ -29,13 +30,17 @@ func AgentFactory(cfg domain.AgentConfig, llm domain.LLMProvider) (domain.Agent,
 		ws := workspace.NewLocalWorkspace(cfg.Security)
 		return agent.NewEngineerAgent(cfg.ID, llm, ws, cfg.Security), nil
 
+	case "liaison":
+		// Inject Vector Store into Liaison
+		return agent.NewLiaisonAgent(cfg.ID, llm, registry, vecStore), nil
+
 	default:
 		return nil, fmt.Errorf("unknown agent type: %s", cfg.Type)
 	}
 }
 
 // LoadAgents reads the YAML config and instantiates agents.
-func LoadAgents(path string, llm domain.LLMProvider, registry mcp.Registry) ([]domain.Agent, []domain.Mission, error) {
+func LoadAgents(path string, llm domain.LLMProvider, registry mcp.Registry, vecStore vector.Store) ([]domain.Agent, []domain.Mission, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, err
@@ -48,16 +53,10 @@ func LoadAgents(path string, llm domain.LLMProvider, registry mcp.Registry) ([]d
 
 	var agents []domain.Agent
 	for _, cfg := range sysCfg.Agents {
-		var a domain.Agent
-		switch cfg.Type {
-		case "engineer":
-			// We can pass a real workspace here later
-			ws := workspace.NewLocalWorkspace(cfg.Security)
-			a = agent.NewEngineerAgent(cfg.ID, llm, ws, cfg.Security)
-		case "liaison":
-			a = agent.NewLiaisonAgent(cfg.ID, llm, registry)
-		default:
-			// Fallback or generic agent
+		// Use Factory
+		a, err := AgentFactory(cfg, llm, registry, vecStore)
+		if err != nil {
+			// fallback or skip
 			continue
 		}
 		agents = append(agents, a)

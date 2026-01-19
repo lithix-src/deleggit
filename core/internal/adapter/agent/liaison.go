@@ -9,6 +9,7 @@ import (
 	"github.com/datacraft/catalyst/core/internal/domain"
 	"github.com/point-unknown/catalyst/pkg/logger"
 	"github.com/point-unknown/catalyst/pkg/mcp"
+	"github.com/point-unknown/catalyst/pkg/vector"
 )
 
 // LiaisonAgent is the Human-Swarm Interface.
@@ -18,14 +19,16 @@ type LiaisonAgent struct {
 	llm      domain.LLMProvider
 	logger   *slog.Logger
 	registry mcp.Registry
+	vector   vector.Store
 }
 
-func NewLiaisonAgent(id string, llm domain.LLMProvider, reg mcp.Registry) *LiaisonAgent {
+func NewLiaisonAgent(id string, llm domain.LLMProvider, reg mcp.Registry, vec vector.Store) *LiaisonAgent {
 	return &LiaisonAgent{
 		id:       id,
 		llm:      llm,
 		logger:   logger.New(fmt.Sprintf("agent-%s", id)),
 		registry: reg,
+		vector:   vec,
 	}
 }
 
@@ -55,6 +58,30 @@ func (a *LiaisonAgent) Execute(ctx context.Context, input domain.CloudEvent) (*d
 	}
 
 	a.logger.Info("Liaison woke up. Listening to chat context...", "context_len", data["context_len"])
+
+	// 0. Vibe Engine (RAG) retrieval
+	// We allow the 'user_input' to drive the search.
+	if userInput, ok := data["user_input"].(string); ok && userInput != "" && a.vector != nil {
+		a.logger.Info("🤔 Recalling memories...", "query", userInput)
+
+		// A. Embed
+		embedding, err := a.llm.Embed(ctx, userInput)
+		if err != nil {
+			a.logger.Warn("Failed to embed user input", "error", err)
+		} else {
+			// B. Search
+			results, err := a.vector.Search(ctx, embedding, 3)
+			if err != nil {
+				a.logger.Warn("Failed to search memories", "error", err)
+			} else {
+				a.logger.Info("found memories", "count", len(results))
+				for _, r := range results {
+					a.logger.Info("Memory", "score", r.Score, "preview", r.Content[:min(len(r.Content), 50)]+"...")
+				}
+				// TODO: Append results to LLM Context
+			}
+		}
+	}
 
 	// 1. List Available Tools
 	tools := a.registry.ListTools()

@@ -33,23 +33,39 @@ agents:
     safety:
       read_only: false
 
+  - id: "SystemArchitect"
+    type: "liaison" # Core Logic/Debate
+    config: {}
+    safety:
+      read_only: true # Only "Thinks", doesn't "Act" on Files
+
+  - id: "SoftwareEngineer"
+    type: "engineer"
+    config: {}
+    safety:
+      sandbox_path: "d:/Datacraft/Catalyst"
+      allowed_patterns: ["*.go", "*.ts", "*.tsx", "*.md", "*.yaml"]
+      read_only: false
+
+  - id: "InfrastructureManager"
+    type: "liaison" # Infrastructure Context Switcher
+    config: {}
+    safety:
+      read_only: false
+
 missions:
-  - id: "mission-001"
-    name: "Hardware Telemetry Watch"
-    trigger_topic: "sensor/#"
-    agents: ["TrendScout"]
-
-  - id: "mission-002"
-    name: "Swarm Activity Stream"
-    trigger_topic: "agent/+/log"
-    agents: ["SwarmLog"]
-
-  - id: "mission-pipeline"
-    name: "Pipeline Architecture"
-    trigger_topic: "agent.pipeline.wake"
-    agents: ["PipelineArchitect"]
+  - id: "mission-hive-mind"
+    name: "The Pulse (Consensus)"
+    trigger_topic: "agent/signal" # All synchronization signals
+    agents:
+      [
+        "SystemArchitect",
+        "SoftwareEngineer",
+        "PipelineArchitect",
+        "InfrastructureManager",
+      ]
 
   - id: "mission-chat"
     name: "ChatOps Liaison"
-    trigger_topic: "agent.liaison.wake" # Exact Type Match
+    trigger_topic: "agent.liaison.wake"
     agents: ["Liaison"]

@@ -41,6 +41,21 @@
 **Focus**: Workflow Authoring, Build Execution, Pipeline Optimization.
 **Responsibility**: Create and Manage `.github/workflows`.
 
+### `arch:system:01` (Service: "SystemArchitect")
+**Role**: Council Chair / Governance
+**Focus**: Standards Enforcement, Implementation Planning, Meta-Agentry.
+**Responsibility**: Review Agent Proposals, Produce Final `ImplementationPlan`, Enforce `STANDARDS.md`.
+
+### `eng:feature:01` (Service: "SoftwareEngineer")
+**Role**: Vibe Coding / Feature Implementation
+**Focus**: Code Generation, Refactoring, Bug Fixing.
+**Responsibility**: Execute `code.write` and `git.pr` to deliver features.
+
+### `ops:infra:01` (Service: "InfrastructureManager")
+**Role**: Target Host Manager
+**Focus**: Environment Contexts, Connectivity, Cloud Resources.
+**Responsibility**: Manage `kubeconfig` and executing `context.switch` for deployments.
+
 ## 2. Engineering Standards (The "Rigid Core")
 All agents MUST adhere to the **Catalyst SDK** pattern:
 1.  **Imports**: Use `github.com/point-unknown/catalyst/pkg/...` for Logging, Env, and CloudEvents.
