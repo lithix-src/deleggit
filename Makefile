@@ -83,10 +83,7 @@ test:
 # Spin up Local Kubernetes Cluster (Postgres + Mosquitto + Observability)
 cluster-up:
 	kind create cluster --config deploy/k8s/kind-config.yaml --name catalyst-local
-	kubectl apply -f deploy/k8s/namespace.yaml
-	kubectl apply -f deploy/k8s/postgres.yaml
-	kubectl apply -f deploy/k8s/mosquitto.yaml
-	kubectl apply -f deploy/k8s/observability.yaml
+	helm install catalyst deploy/charts/catalyst --values deploy/charts/catalyst/values.yaml
 	@echo "⏳ Waiting for Pods..."
 	kubectl get pods -n catalyst-local -w
 

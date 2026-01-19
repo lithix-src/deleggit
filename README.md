@@ -82,7 +82,7 @@ We utilize a virtual "Swarm" of specialized agent personas to execute this proje
 
 ---
 
-## 🧠 Phase 2: Core Orchestration Architecture
+## 🧠 Phase 5: The Vibe Engine (Swarm Intelligence)
 The `catalyst-core` service is the central nervous system, built on a **Hexagonal Architecture**.
 
 ### 1. The Hexagonal Core
@@ -95,17 +95,20 @@ The `catalyst-core` service is the central nervous system, built on a **Hexagona
     *   **MissionManager**: [x] Routing Logic Verified.
     *   **AgentRegistry**: [x] Plugin Loading (Concurrency Safe).
     *   **GroupChatManager**: [x] Conversational Orchestrator.
+    *   **VibeEngine**: [x] Vector Recall & Code Indexing.
 *   **Shared SDK** (`pkg/`):
     *   **CloudEvent**: Unified Data Protocol.
     *   **Logger**: Standardized JSON Logging.
     *   **MCP**: Catalyst Tool Protocol (Model Context Protocol).
+    *   **Vector**: Embeddings & Similarity Search.
 
-### 2. The Agent Execution Spectrum
-Agents interact in 3 modes, rigorously typed in the Domain:
-1.  **Reporting**: Telemetry/Logs (`agent.log`). Fire-and-forget.
-2.  **Communicating**: Inter-agent Signals (`agent.signal`).
-3.  **Expressing**: Structured Artifacts (`data.report`). Final output.
-4.  **Tooling**: Direct Action (`tool.call`). Side-effect execution.
+### 2. The Hive Mind (Agent Swarm)
+We utilize a virtual "Hive Mind" of specialized agent personas:
+*   **SystemArchitect**: Governance & OrgPolicy Enforcement (Read-Only).
+*   **SoftwareEngineer**: Vibe Coding & Feature Implementation (R/W).
+*   **PipelineArchitect**: CI/CD & Workflow Management.
+*   **InfrastructureManager**: K8s & Helm Operations.
+*   **Liaison**: Human-Swarm Interface (ChatOps).
 
 ---
 
@@ -120,7 +123,7 @@ Catalyst is architected for **Zero Trust Local** execution.
 ### 🛠️ Development Workflow
 We adhere to a standardized `Makefile` workflow.
 
-**Prerequisites**: Docker Desktop, Go 1.22+, Node.js 20+, Kind.
+**Prerequisites**: Docker Desktop, Go 1.22+, Node.js 20+, Kind, Helm.
 
 ```bash
 # 1. Install Dependencies & Tools
@@ -129,27 +132,30 @@ make install
 # 2. Standards Verification (Run before PRs)
 make sdk-check
 
-# 3. Start Full Stack (Localhost)
+# 3. Start Infrastructure (K8s + Helm)
+# Deploys Postgres (pgvector), Mosquitto, and Observability
+make cluster-up 
+
+# 4. Start Application Stack (Localhost)
 # Launches UI (localhost:5173), Core Service, Device Mock, and Repo Watcher
 make dev
 
-# 4. Clean Environment (Kill processes, prune containers)
+# 5. Clean Environment (Kill processes, prune containers)
 make clean
 
-# 5. Infrastructure Management
-make cluster-up   # Start Kind Cluster (DB/Broker)
-make cluster-down # Destroy Cluster
+# 6. Destroy Infrastructure
+make cluster-down
 ```
 
 ---
 
 ## 📂 Repository Structure
-*   `/pkg`: **Catalyst SDK** (Shared Libraries for Events/Logs/MCP).
+*   `/pkg`: **Catalyst SDK** (Shared Libraries for Events/Logs/MCP/Vector).
 *   `/ui`: The React Frontend Application (`Interface`).
 *   `/core`: The central Go Orchestrator (`Orchestrator`) with RAG.
 *   `/bin`:
     *   `device-mock`: Hardware simulator (`Simulation`).
-    *   `repo-watcher`: GitHub connectivity & Pipeline Execution service (`Watcher`).
-    *   `docker-watcher`: Local Docker state monitor (`Infrastructure`).
-*   `/deploy`: Kubernetes Manifests and Docker configs (`Infrastructure`).
+    *   `repo-watcher`: GitHub connectivity & Code Indexing (`Watcher`).
+*   `/deploy`:
+    *   `/charts`: Helm Charts for Infrastructure.
 *   `/docs`: Architecture Decision Records (ADRs).
