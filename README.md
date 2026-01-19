@@ -13,9 +13,9 @@ All functional components MUST adhere to this topology:
 ```mermaid
 graph TD
     subgraph "Windows Host (Source Layer)"
-        Device[Hardware Bridge (Go)]
-        Repo[Repository Watcher (Go)]
-        Agents[Agent Swarm (Go/Containers)]
+        Device["Hardware Bridge (Go)"]
+        Repo["Repository Watcher (Go)"]
+        Agents["Agent Swarm (Go/Containers)"]
     end
 
     subgraph "Catalyst Runtime (Event Bus)"
