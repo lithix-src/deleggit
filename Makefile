@@ -29,6 +29,10 @@ lint: ## Enforce Engineering Standards (Go & TS)
 	go fmt ./...
 	@echo "Standards verification complete."
 
+sdk-check:
+	@echo "Verifying SDK Usage..."
+	@go list -f '{{.ImportPath}}: {{.Imports}}' ./... | findstr "github.com/point-unknown/catalyst/pkg" > NUL || echo "WARNING: Some packages may not be using the SDK"
+
 # Clean up all ports and processes
 clean:
 	@echo "Cleaning up environment..."

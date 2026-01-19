@@ -1,12 +1,11 @@
 module catalyst/docker-watcher
 
-go 1.24.0
-
-toolchain go1.24.6
+go 1.24.6
 
 require (
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.4.3
+	github.com/point-unknown/catalyst/pkg v0.0.0
 	github.com/prometheus/client_golang v1.19.0
 )
 
@@ -18,6 +17,7 @@ require (
 	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.1.0 // indirect
@@ -37,3 +37,5 @@ require (
 
 // Fix for Docker dependency hell
 replace github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
+
+replace github.com/point-unknown/catalyst/pkg => ../../pkg

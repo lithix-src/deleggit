@@ -1,0 +1,33 @@
+agents:
+  - id: "TrendScout"
+    type: "trend-scout"
+    config:
+      threshold: 85.0
+    safety:
+      read_only: true
+
+  - id: "SwarmLog"
+    type: "console-reporter"
+    config: {}
+    safety:
+      read_only: true
+
+  - id: "Engineer"
+    type: "engineer"
+    config: {}
+    safety:
+      sandbox_path: "d:/Datacraft/Catalyst/workspace"
+      allowed_patterns: ["*.go", "*.md", "*.txt"]
+      denied_patterns: [".env", "id_rsa"]
+      read_only: false
+
+missions:
+  - id: "mission-001"
+    name: "Hardware Telemetry Watch"
+    trigger_topic: "sensor/#"
+    agents: ["TrendScout"]
+
+  - id: "mission-002"
+    name: "Swarm Activity Stream"
+    trigger_topic: "agent/+/log"
+    agents: ["SwarmLog"]

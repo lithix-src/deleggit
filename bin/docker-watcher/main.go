@@ -4,24 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-	"time"
-
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/point-unknown/catalyst/pkg/cloudevent"
+	"github.com/point-unknown/catalyst/pkg/env"
+	"github.com/point-unknown/catalyst/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// Config
-const (
-	BrokerURL   = "tcp://localhost:1883"
-	ClientID    = "catalyst-docker-watcher"
-	TopicState  = "infra/docker/state"
-	MetricsPort = ":8084"
+// Config via SDK
+var (
+	BrokerURL   = env.Get("BROKER_URL", "tcp://localhost:1883")
+	ClientID    = env.Get("CLIENT_ID", "catalyst-docker-watcher")
+	MetricsPort = env.Get("METRICS_PORT", ":8084")
 )
 
 var (
@@ -52,12 +53,14 @@ type ContainerState struct {
 }
 
 func main() {
-	log.Println("[DockerWatcher] Starting...")
+	log := logger.New("docker-watcher")
+	log.Info("Starting Docker Watcher...")
 
 	// 1. Connect to Docker
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.44"))
 	if err != nil {
-		log.Fatalf("[DockerWatcher] Failed to create Docker client: %v", err)
+		log.Error("Failed to create Docker client", "error", err)
+		return
 	}
 	defer cli.Close()
 
@@ -65,15 +68,17 @@ func main() {
 	opts := mqtt.NewClientOptions().AddBroker(BrokerURL).SetClientID(ClientID)
 	mqttClient := mqtt.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("[DockerWatcher] Failed to connect to MQTT: %v", token.Error())
+		log.Error("Failed to connect to MQTT", "error", token.Error())
+		return
 	}
-	log.Println("[DockerWatcher] Connected to MQTT Broker")
+	log.Info("Connected to MQTT Broker", "url", BrokerURL)
 
 	// 3. Start Metrics Server
 	go func() {
-		log.Printf("[DockerWatcher] Serving metrics on %s", MetricsPort)
+		log.Info("Serving metrics", "port", MetricsPort)
 		http.Handle("/metrics", promhttp.Handler())
-		log.Fatal(http.ListenAndServe(MetricsPort, nil))
+		// http.ListenAndServe is blocking, so we panic if it fails to ensure visibility
+		panic(http.ListenAndServe(MetricsPort, nil))
 	}()
 
 	// 4. Polling Loop (Every 5s)
@@ -81,14 +86,14 @@ func main() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		pollContainers(cli, mqttClient)
+		pollContainers(cli, mqttClient, log)
 	}
 }
 
-func pollContainers(cli *client.Client, m mqtt.Client) {
+func pollContainers(cli *client.Client, m mqtt.Client, log *slog.Logger) {
 	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
 	if err != nil {
-		log.Printf("[DockerWatcher] Error listing containers: %v", err)
+		log.Error("Error listing containers", "error", err)
 		return
 	}
 
@@ -110,8 +115,8 @@ func pollContainers(cli *client.Client, m mqtt.Client) {
 			Image:  c.Image,
 			State:  c.State,
 			Status: c.Status,
-			CPU:    0.0, // Future: Calculate from Stats API
-			Memory: 0.0, // Future: Calculate from Stats API
+			CPU:    0.0,
+			Memory: 0.0,
 		}
 		states = append(states, state)
 	}
@@ -120,21 +125,10 @@ func pollContainers(cli *client.Client, m mqtt.Client) {
 	containerCount.Set(float64(len(containers)))
 	containerRunning.Set(float64(runningCount))
 
-	// Publish List (CloudEvent Format)
-	payload := map[string]interface{}{
-		"id":          fmt.Sprintf("evt-%d", time.Now().UnixNano()),
-		"source":      "docker-watcher",
-		"specversion": "1.0",
-		"type":        "infra.docker.state",
-		"time":        time.Now().UTC(),
-		"data":        states,
-	}
+	// 1. Publish State List (Data Dump)
+	publishEvent(m, log, "infra/docker/state", "infra.docker.state", states)
 
-	bytes, _ := json.Marshal(payload)
-	m.Publish(TopicState, 0, false, bytes)
-
-	// Publish CSS Compliant Sensor Data (Dynamic Grid)
-	// 1. Running Count
+	// 2. Publish CSS Compliant Sensor Data (Running Count)
 	sensorPayload := map[string]interface{}{
 		"value": float64(runningCount),
 		"unit":  "cnt",
@@ -143,19 +137,24 @@ func pollContainers(cli *client.Client, m mqtt.Client) {
 			"total": fmt.Sprintf("%d", len(containers)),
 		},
 	}
-	sensorBytes, _ := json.Marshal(map[string]interface{}{
-		"id":          fmt.Sprintf("evt-%d", time.Now().UnixNano()),
-		"source":      "docker-watcher",
-		"specversion": "1.0",
-		"type":        "sensor.docker.running",
-		"time":        time.Now().UTC(),
-		"data":        sensorPayload,
-	})
-	m.Publish("sensor/docker/running", 0, false, sensorBytes)
+	publishEvent(m, log, "sensor/docker/running", "sensor.docker.running", sensorPayload)
 
-	// Also log to swarm activity occasionally
-	if len(states) > 0 {
-		logPayload := fmt.Sprintf(`{"agent": "Infrastructure", "message": "Monitoring %d containers (%d running)"}`, len(states), runningCount)
-		m.Publish("agent/infra/log", 0, false, logPayload)
+	log.Info("Polled Docker", "total", len(containers), "running", runningCount)
+}
+
+func publishEvent(client mqtt.Client, log *slog.Logger, topic, eventType string, data interface{}) {
+	evt, err := cloudevent.New("docker-watcher", eventType, data)
+	if err != nil {
+		log.Error("Failed to create event", "type", eventType, "error", err)
+		return
 	}
+
+	bytes, err := json.Marshal(evt)
+	if err != nil {
+		log.Error("Failed to marshal event", "type", eventType, "error", err)
+		return
+	}
+
+	token := client.Publish(topic, 0, false, bytes)
+	token.Wait()
 }

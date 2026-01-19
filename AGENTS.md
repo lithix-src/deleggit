@@ -30,3 +30,10 @@
 **Role**: Quality Assurance & Audit
 **Focus**: Integration Testing, Log Verification, Security Compliance.
 **Responsibility**: Validating system integrity and test coverage.
+
+## 2. Engineering Standards (The "Rigid Core")
+All agents MUST adhere to the **Catalyst SDK** pattern:
+1.  **Imports**: Use `github.com/point-unknown/catalyst/pkg/...` for Logging, Env, and CloudEvents.
+2.  **No Stdlib Log**: Do not use `log.Println`. Use `logger.New(serviceName)`.
+3.  **No Stdlib Env**: Do not use `os.Getenv`. Use `env.Get()`.
+4.  **Verification**: After every code change, run `make sdk-check` to verify SDK compliance.

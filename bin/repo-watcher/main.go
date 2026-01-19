@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -12,44 +12,41 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/point-unknown/catalyst/pkg/cloudevent"
+	"github.com/point-unknown/catalyst/pkg/env"
+	"github.com/point-unknown/catalyst/pkg/logger"
 )
 
 var (
-	brokerURL  = "tcp://localhost:1883"
-	clientID   = "catalyst-repo-watcher"
-	repoPath   = "../../"              // Assuming running from bin/repo-watcher or root via make
-	remoteName = "lithix-src/deleggit" // Default, can be parsed from git remote
+	// Config loaded from Environment via SDK
+	brokerURL  = env.Get("BROKER_URL", "tcp://localhost:1883")
+	clientID   = env.Get("CLIENT_ID", "catalyst-repo-watcher")
+	repoPath   = env.Get("REPO_PATH", "../../")
+	remoteName = env.Get("REMOTE_NAME", "lithix-src/deleggit")
 )
 
-// GitHubEvent structure
-type GitHubEvent struct {
-	Type   string
-	Repo   string
-	Title  string
-	Ref    string
-	Author string
-	URL    string
-}
-
 func main() {
-	log.Println("[RepoWatcher] Starting Real Git Poller...")
+	// 1. Initialize Standard Logger
+	log := logger.New("repo-watcher")
+	log.Info("Starting Real Git Poller...")
 
-	// 1. MQTT Setup
+	// 2. MQTT Setup
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(brokerURL)
 	opts.SetClientID(clientID)
 	client := mqtt.NewClient(opts)
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("[RepoWatcher] Failed to connect: %v", token.Error())
+		log.Error("Failed to connect to Event Bus", "error", token.Error())
+		os.Exit(1)
 	}
-	log.Println("[RepoWatcher] Connected to Event Bus")
+	log.Info("Connected to Event Bus", "broker", brokerURL)
 
-	// 2. Initial State
+	// 3. Initial State
 	lastHash := getGitHeadHash()
-	log.Printf("[RepoWatcher] Monitoring from Hash: %s", lastHash)
+	log.Info("Monitoring started", "hash", lastHash, "path", repoPath)
 
-	// 3. Polling Loop
+	// 4. Polling Loop
 	ticker := time.NewTicker(5 * time.Second)
 	quit := make(chan struct{})
 
@@ -59,20 +56,36 @@ func main() {
 			case <-ticker.C:
 				currentHash := getGitHeadHash()
 				if currentHash != "" && currentHash != lastHash {
-					log.Printf("[RepoWatcher] Change Detected! %s -> %s", lastHash, currentHash)
+					log.Info("Change Detected!", "old", lastHash, "new", currentHash)
 
 					// Fetch Commit Details
 					details := getCommitDetails(currentHash)
-					evt := GitHubEvent{
-						Type:   "repo.push",
-						Repo:   remoteName,
-						Title:  details.Message,
-						Ref:    currentHash,
-						Author: details.Author,
-						URL:    fmt.Sprintf("https://github.com/%s/commit/%s", remoteName, currentHash),
+
+					// Construct Payload
+					payload := map[string]string{
+						"repo":   remoteName,
+						"title":  details.Message,
+						"author": details.Author,
+						"ref":    currentHash,
+						"url":    fmt.Sprintf("https://github.com/%s/commit/%s", remoteName, currentHash),
 					}
 
-					publishEvent(client, evt)
+					// Create Standard CloudEvent
+					evt, err := cloudevent.New(
+						"repo-watcher",
+						"repo.push",
+						payload,
+					)
+
+					if err != nil {
+						log.Error("Failed to create event", "error", err)
+						continue
+					}
+
+					// Publish
+					// (Event creation handled above, marshaling handled in publishEvent)
+
+					publishEvent(client, evt, log)
 					lastHash = currentHash
 				}
 			case <-quit:
@@ -82,12 +95,12 @@ func main() {
 		}
 	}()
 
-	// 4. Shutdown Signal
+	// 5. Shutdown Signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	log.Println("[RepoWatcher] Shutting down...")
+	log.Info("Shutting down...")
 	close(quit)
 	client.Disconnect(250)
 }
@@ -97,7 +110,7 @@ func getGitHeadHash() string {
 	cmd.Dir = repoPath
 	out, err := cmd.Output()
 	if err != nil {
-		log.Printf("Error getting git head: %v", err)
+		// Suppress error log to avoid noise if just starting up or pulling
 		return ""
 	}
 	return strings.TrimSpace(string(out))
@@ -109,7 +122,6 @@ type CommitDetails struct {
 }
 
 func getCommitDetails(hash string) CommitDetails {
-	// git log -1 --format="%an|%s" hash
 	cmd := exec.Command("git", "log", "-1", "--format=%an|%s", hash)
 	cmd.Dir = repoPath
 	out, err := cmd.Output()
@@ -123,26 +135,16 @@ func getCommitDetails(hash string) CommitDetails {
 	return CommitDetails{Author: parts[0], Message: parts[1]}
 }
 
-func publishEvent(client mqtt.Client, evt GitHubEvent) {
-	payload := map[string]interface{}{
-		"id":          fmt.Sprintf("evt-%d", time.Now().UnixNano()),
-		"source":      "repo-watcher",
-		"specversion": "1.0",
-		"type":        evt.Type,
-		"time":        time.Now().UTC(),
-		"data": map[string]string{
-			"repo":   evt.Repo,
-			"title":  evt.Title,
-			"author": evt.Author,
-			"ref":    evt.Ref,
-			"url":    evt.URL,
-		},
+// Rewritten to use SDK Event
+func publishEvent(client mqtt.Client, evt cloudevent.Event, log *slog.Logger) {
+	bytes, err := json.Marshal(evt)
+	if err != nil {
+		log.Error("Failed to marshal event", "error", err)
+		return
 	}
 
-	bytes, _ := json.Marshal(payload)
 	topic := fmt.Sprintf("repo/%s/%s", "catalyst", "event")
-
 	token := client.Publish(topic, 0, false, bytes)
 	token.Wait()
-	log.Printf("[RepoWatcher] >>> NEW REAL CHANGE: %s", evt.Title)
+	log.Info(">>> EVENT PUBLISHED", "title", evt.Type) // Type is repo.push
 }
