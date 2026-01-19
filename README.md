@@ -140,11 +140,19 @@ make cluster-up
 # Launches UI (localhost:5173), Core Service, Device Mock, and Repo Watcher
 make dev
 
-# 5. Clean Environment (Kill processes, prune containers)
-make clean
+# 5. Infrastructure Management
+make cluster-up   # Start Kind Cluster (DB/Broker)
+make cluster-down # Destroy Cluster
 
-# 6. Destroy Infrastructure
-make cluster-down
+# 6. LLM Configuration (Optional)
+# Defaults:
+# LLM_ENDPOINT=http://localhost:11434/v1
+# LLM_MODEL=qwen2.5-coder:7b-instruct
+# PRIVATE_MODE=true
+#
+# To override (e.g. for different model):
+# Set-Item -Path Env:LLM_MODEL -Value "llama3:8b"
+# make core
 ```
 
 ---
