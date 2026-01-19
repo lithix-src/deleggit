@@ -1,0 +1,32 @@
+# Catalyst Helm Configuration
+
+namespace: catalyst-local
+
+# Database (Vibe Engine)
+postgres:
+  image: "pgvector/pgvector:pg16"
+  replicas: 1
+  storage: "1Gi"
+  auth:
+    username: "catalyst"
+    database: "catalyst_core"
+    # In production, use a Secret!
+    password: "devpassword"
+  ports:
+    nodePort: 30000
+
+# Event Bus (Nervous System)
+mosquitto:
+  image: "eclipse-mosquitto:2.0"
+  replicas: 1
+  ports:
+    nodePort: 30001
+    containerPort: 1883
+
+# Observability (The Eyes)
+observability:
+  enabled: true
+  prometheus:
+    nodePort: 30090
+  grafana:
+    nodePort: 30080
