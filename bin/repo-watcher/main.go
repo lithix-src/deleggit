@@ -102,6 +102,30 @@ func main() {
 					// (Event creation handled above, marshaling handled in publishEvent)
 
 					publishEvent(client, evt, log)
+
+					// 7. Delta Scan (Vibe Engine Ingest)
+					// We diff the changes and publish content for indexing
+					if lastHash != "" {
+						files := getChangedFiles(lastHash, currentHash)
+						log.Info("Scanning changes for Vibe Engine", "files", len(files))
+						for _, file := range files {
+							// Filter interesting files
+							if shouldIndex(file) {
+								content, err := readFile(file)
+								if err == nil {
+									// Publish Content Event
+									payload := map[string]string{
+										"path":    file,
+										"content": content,
+										"hash":    currentHash,
+									}
+									ce, _ := cloudevent.New("repo-watcher", "repo.content", payload)
+									publishEvent(client, ce, log)
+								}
+							}
+						}
+					}
+
 					lastHash = currentHash
 				}
 			case <-quit:
@@ -250,4 +274,44 @@ func executePipelineRun(workflow string) (string, error) {
 		return fmt.Sprintf("Triggered workflow '%s' (Mock)", workflow), nil
 	}
 	return fmt.Sprintf("Triggered workflow '%s'. Output: %s", workflow, string(out)), nil
+}
+
+// getChangedFiles returns list of filenames changed between two commits
+func getChangedFiles(oldHash, newHash string) []string {
+	cmd := exec.Command("git", "diff", "--name-only", oldHash, newHash)
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
+	if err != nil {
+		return []string{}
+	}
+	lines := strings.Split(string(out), "\n")
+	var result []string
+	for _, l := range lines {
+		trimmed := strings.TrimSpace(l)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+func shouldIndex(path string) bool {
+	// Simple whitelist
+	if strings.HasSuffix(path, ".go") ||
+		strings.HasSuffix(path, ".md") ||
+		strings.HasSuffix(path, ".ts") ||
+		strings.HasSuffix(path, ".tsx") ||
+		strings.HasSuffix(path, ".yaml") {
+		return true
+	}
+	return false
+}
+
+func readFile(path string) (string, error) {
+	fullPath := fmt.Sprintf("%s/%s", strings.TrimRight(repoPath, "/"), path)
+	content, err := os.ReadFile(fullPath)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
 }

@@ -175,3 +175,74 @@ func isPrivateIP(endpoint string) bool {
 	}
 	return false
 }
+
+type EmbeddingRequest struct {
+	Model string `json:"model"`
+	Input string `json:"input"`
+}
+
+type EmbeddingResponse struct {
+	Data []struct {
+		Embedding []float64 `json:"embedding"` // OpenAI/Ollama return float64
+	} `json:"data"`
+}
+
+// Embed generates a vector embedding
+func (a *OpenAIAdapter) Embed(ctx context.Context, text string) ([]float32, error) {
+	// If calling Ollama, the endpoint might be /api/embeddings or /v1/embeddings
+	// Standard OpenAI is /v1/embeddings
+	url := fmt.Sprintf("%s/embeddings", a.endpoint)
+
+	payload := EmbeddingRequest{
+		Model: "nomic-embed-text", // Should be configurable, but defaulting for now if not in config
+		Input: text,
+	}
+	// Use configured model if it looks like an embedding model?
+	// Usually LLMs have separate models for Chat vs Embed.
+	// For MVP, simple override:
+	if strings.Contains(a.model, "embed") {
+		payload.Model = a.model
+	}
+
+	jsonBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if a.apiKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.apiKey))
+	}
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("embedding API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var result EmbeddingResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	if len(result.Data) == 0 {
+		return nil, fmt.Errorf("empty embedding response")
+	}
+
+	// Convert float64 -> float32
+	raw := result.Data[0].Embedding
+	out := make([]float32, len(raw))
+	for i, v := range raw {
+		out[i] = float32(v)
+	}
+	return out, nil
+}

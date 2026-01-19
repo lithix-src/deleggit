@@ -16,6 +16,7 @@ import (
 	"github.com/point-unknown/catalyst/pkg/env"
 	"github.com/point-unknown/catalyst/pkg/logger"
 	"github.com/point-unknown/catalyst/pkg/mcp"
+	"github.com/point-unknown/catalyst/pkg/vector"
 )
 
 var (
@@ -87,7 +88,8 @@ func main() {
 	// B. Register Standard Agents (Dynamic Loader)
 	configFile := env.Get("CATALYST_CONFIG_PATH", "../../config/agents.yaml")
 
-	loadedAgents, loadedMissions, err := service.LoadAgents(configFile, llmProvider, registry)
+	// Pass vector store to loader
+	loadedAgents, loadedMissions, err := service.LoadAgents(configFile, llmProvider, registry, pgStore.Vector)
 	if err != nil {
 		Log.Warn("⚠️ [LOADER] Failed to load agents.yaml. Running without agents.", "error", err)
 	} else {
@@ -143,6 +145,58 @@ func main() {
 		Log.Error("Failed to subscribe to sensors", "error", err)
 		os.Exit(1)
 	}
+
+	// Route Repo Events (Indexing)
+	err = mqttClient.Subscribe("repo/#", func(event domain.CloudEvent) {
+		if event.Type == "repo.content" {
+			Log.Info("🧠 Indexing Code...", "size", len(event.Data))
+			if pgStore != nil && pgStore.Vector != nil {
+				go func() {
+					ctx := context.Background()
+
+					var payload map[string]string
+					if err := json.Unmarshal(event.Data, &payload); err != nil {
+						Log.Warn("Failed to unmarshal repo.content", "error", err)
+						return
+					}
+
+					content := payload["content"]
+					path := payload["path"]
+
+					if content == "" {
+						return
+					}
+
+					// 1. Embed
+					vec, err := llmProvider.Embed(ctx, content)
+					if err != nil {
+						Log.Warn("Failed to embed code", "error", err)
+						return // Retry?
+					}
+
+					// 2. Store
+					doc := vector.Document{
+						ID:        path, // Use path as ID to overwrite on update
+						Content:   content,
+						Embedding: vec,
+						Metadata: map[string]interface{}{
+							"hash": payload["hash"],
+							"type": "code",
+						},
+					}
+
+					if err := pgStore.Vector.Upsert(ctx, []vector.Document{doc}); err != nil {
+						Log.Warn("Failed to upsert vector", "error", err)
+					} else {
+						Log.Info("✅ Indexed Code", "path", path)
+					}
+				}()
+			}
+		} else {
+			// Normal Repo Events (PR, Push) -> Mission Manager
+			missionMgr.ProcessEvent(event)
+		}
+	})
 
 	Log.Info("Core Service Operational. Swarm is Active.")
 

@@ -10,4 +10,7 @@ type LLMProvider interface {
 
 	// CheckHealth verifies the connection to the LLM service.
 	CheckHealth(ctx context.Context) error
+
+	// Embed generates a vector embedding for the given text.
+	Embed(ctx context.Context, text string) ([]float32, error)
 }

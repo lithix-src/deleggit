@@ -8,10 +8,12 @@ import (
 
 	"github.com/datacraft/catalyst/core/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/point-unknown/catalyst/pkg/vector"
 )
 
 type PostgresStore struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	Vector vector.Store
 }
 
 func NewPostgresStore(connString string) (*PostgresStore, error) {
@@ -70,10 +72,20 @@ func (s *PostgresStore) InitSchema(ctx context.Context) error {
 		return fmt.Errorf("failed to create missions table: %w", err)
 	}
 	if _, err := s.pool.Exec(ctx, queryEvents); err != nil {
+
 		return fmt.Errorf("failed to create event_log table: %w", err)
 	}
 
-	log.Println("[STORE] Schema Initialized.")
+	// 3. Initialize Vector Store
+	// Dimension 768 is standard for nomic-embed-text (Ollama default)
+	// We use "memories" as the table name
+	vecStore := vector.NewPostgresStore(s.pool, "memories", 768)
+	if err := vecStore.Init(ctx); err != nil {
+		return fmt.Errorf("failed to init vector store: %w", err)
+	}
+	s.Vector = vecStore
+
+	log.Println("[STORE] Schema Initialized (including Vector).")
 	return nil
 }
 
