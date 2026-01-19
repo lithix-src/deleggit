@@ -86,7 +86,7 @@ func main() {
 	Log.Info("✅ [MCP] Local Registry Initialized", "tools", 1)
 
 	// B. Register Standard Agents (Dynamic Loader)
-	configFile := env.Get("CATALYST_CONFIG_PATH", "../../config/agents.yaml")
+	configFile := env.Get("CATALYST_CONFIG_PATH", "config/agents.yaml")
 
 	// Pass vector store to loader
 	loadedAgents, loadedMissions, err := service.LoadAgents(configFile, llmProvider, registry, pgStore.Vector)
