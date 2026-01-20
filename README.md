@@ -3,9 +3,29 @@
 
 > 🚀 **Catalyst MVP 1.0 (Swarm Activated)**
 
+## 📚 Centralized Documentation Index
+
+### 👩‍💻 User Resources
+- **[Deployment & Usage Guide](#-development-workflow)**: How to install, run, and manage Catalyst.
+- **[Frontend Documentation](ui/README.md)**: UI/UX specifics, components, and theming.
+
+### 🤖 Developer & Agent Resources
+- **[System Architecture](docs/ARCHITECTURE.md)**: Core design, Hexagonal Architecture, and Data Flow.
+- **[Agent Swarm Protocol](AGENTS.md)**: Agent Personas, Roles, and Interaction Rules.
+- **[Engineering Standards](docs/STANDARDS.md)**: Coding conventions, CloudEvent schemas, and Telemetry standards.
+- **[Vector & Swarm Design](docs/swarms.md)**: RAG integration and Swarm Intelligence design.
+- **[UI Architecture](UI_ARCHITECTURE.md)**: Frontend Component hierarchy and State Management.
+- **[K8s Isolation ADR](docs/adr-001-k8s-isolation.md)**: Decision record for Zero Trust Architecture.
+
 ## 🌍 Global Architecture State
-**Current Strategy:** "Phase 4: Real-World Connectivity"
-**Goal:** A self-hosted Control Plane ("High-Visibility Industrial Slate") visualizing Hardware Telemetry, Agent Swarm Operations, and Repository Events.
+**Current Phase:** "Phase 5: Swarm Intelligence & refined UI"
+**Status:** ✅ Infrastructure Stable | ✅ UI Refactored | 🔄 Agent Swarm Active
+
+### 🚀 Current Capabilities
+- **Frontend**: **Hybrid Light/Dark Theme** ("SaaS Professional") with Real-Time Telemetry.
+- **Backend**: Fully Containerized Go Architecture (Hexagonal) with RAG-enabled "Vibe Engine".
+- **Infrastructure**: "Zero Trust Local" via standard Kind Kubernetes cluster.
+- **Workflow**: Automated `Makefile` standards for Rapid/Hybrid development.
 
 ### 🏗️ Design Reference (The "Architecture Constraint")
 All functional components MUST adhere to this topology:
