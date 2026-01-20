@@ -1,5 +1,5 @@
 import mqtt from "mqtt";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 // CloudEvent Schema Configuration
 export interface CloudEvent {
@@ -10,7 +10,7 @@ export interface CloudEvent {
     time: string;
 }
 
-const BROKER_URL = "ws://localhost:9001"; // WebSockets port
+const BROKER_URL = "ws://localhost:30002"; // WebSockets port (NodePort)
 
 export const client = mqtt.connect(BROKER_URL, {
     keepalive: 60,

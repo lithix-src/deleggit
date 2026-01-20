@@ -1,6 +1,25 @@
 # Catalyst Helm Configuration
 
-namespace: catalyst-local
+global:
+  namespace: catalyst-local
+
+# Core Service (The Brain)
+core:
+  enabled: false
+  image: catalyst/core:latest
+  replicas: 1
+  env:
+    BROKER_URL: "tcp://catalyst-broker-service:1883"
+    DATABASE_URL: "postgres://catalyst:devpassword@catalyst-db-service:5432/catalyst_core"
+
+# UI Service (Mission Control)
+ui:
+  enabled: false
+  image: catalyst/ui:latest
+  replicas: 1
+  service:
+    type: NodePort
+    nodePort: 30080 # User Access Port
 
 # Database (Vibe Engine)
 postgres:
@@ -10,7 +29,6 @@ postgres:
   auth:
     username: "catalyst"
     database: "catalyst_core"
-    # In production, use a Secret!
     password: "devpassword"
   ports:
     nodePort: 30000
@@ -22,6 +40,7 @@ mosquitto:
   ports:
     nodePort: 30001
     containerPort: 1883
+    websocketsNodePort: 30002
 
 # Observability (The Eyes)
 observability:
@@ -29,4 +48,4 @@ observability:
   prometheus:
     nodePort: 30090
   grafana:
-    nodePort: 30080
+    nodePort: 30030 # Moved from 30080 to allow UI to take it

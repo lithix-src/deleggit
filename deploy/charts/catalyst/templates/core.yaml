@@ -1,0 +1,41 @@
+{{- if .Values.core.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalyst-core
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.core.replicas }}
+  selector:
+    matchLabels:
+      app: catalyst-core
+  template:
+    metadata:
+      labels:
+        app: catalyst-core
+    spec:
+      containers:
+        - name: core
+          image: {{ .Values.core.image }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: BROKER_URL
+              value: {{ .Values.core.env.BROKER_URL }}
+            - name: DATABASE_URL
+              value: {{ .Values.core.env.DATABASE_URL }}
+            - name: LLM_ENDPOINT
+              value: "http://host.docker.internal:11434/v1" # Localhost LLM access from container
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalyst-core-service
+  namespace: {{ .Values.global.namespace }}
+spec:
+  selector:
+    app: catalyst-core
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+{{- end }}

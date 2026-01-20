@@ -82,18 +82,20 @@ test:
 
 # Spin up Local Kubernetes Cluster (Postgres + Mosquitto + Observability)
 cluster-up:
-	kind create cluster --config deploy/k8s/kind-config.yaml --name catalyst-local
-	helm install catalyst deploy/charts/catalyst --values deploy/charts/catalyst/values.yaml
-	@echo "⏳ Waiting for Pods..."
-	kubectl get pods -n catalyst-local -w
-
+	helm install catalyst ./deploy/charts/catalyst -n catalyst-local --create-namespace
 
 # Tear down Cluster
 cluster-down:
-	kind delete cluster --name catalyst-local
+	helm uninstall catalyst -n catalyst-local
+
+build-images:
+	docker build -t catalyst/core:latest -f core/Dockerfile .
+	docker build -t catalyst/ui:latest -f ui/Dockerfile ui
+
+load-images: build-images
+	kind load docker-image catalyst/core:latest --name catalyst-local
+	kind load docker-image catalyst/ui:latest --name catalyst-local
 
 # Aggressive Docker Cleanup (Save Disk Space)
 prune:
-	@echo "🧹 Pruning unused Docker objects..."
-	docker system prune -a -f --volumes
 

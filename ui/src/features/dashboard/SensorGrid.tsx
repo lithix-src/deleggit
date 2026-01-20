@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useEventSubscription, CloudEvent } from "@/lib/event-bus";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface SensorValue {
     time: string;
@@ -39,9 +39,9 @@ export function SensorGrid() {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-            <Card className="bg-slate-900 border-slate-800 text-slate-100 shadow-xl shadow-slate-950/50">
+            <Card className="bg-white border-slate-200 text-slate-900 shadow-sm">
                 <CardHeader>
-                    <CardTitle className="text-sm font-mono text-slate-400">CPU LOAD</CardTitle>
+                    <CardTitle className="text-sm font-mono text-slate-500">CPU LOAD</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="text-4xl font-bold mb-4 font-mono text-emerald-400">
@@ -64,9 +64,9 @@ export function SensorGrid() {
                 </CardContent>
             </Card>
 
-            <Card className="bg-slate-900 border-slate-800 text-slate-100 shadow-xl shadow-slate-950/50">
+            <Card className="bg-white border-slate-200 text-slate-900 shadow-sm">
                 <CardHeader>
-                    <CardTitle className="text-sm font-mono text-slate-400">MEMORY USAGE</CardTitle>
+                    <CardTitle className="text-sm font-mono text-slate-500">MEMORY USAGE</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="text-4xl font-bold mb-4 font-mono text-purple-400">

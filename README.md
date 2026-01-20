@@ -144,7 +144,25 @@ make dev
 make cluster-up   # Start Kind Cluster (DB/Broker)
 make cluster-down # Destroy Cluster
 
-# 6. LLM Configuration (Optional)
+### Option A: Hybrid Development (Recommended)
+Run infrastructure in Kubernetes, but application code locally for fast iteration.
+1.  **Start Infrastructure**: `make cluster-up`
+2.  **Start Services**: `make dev` (UI/Mocks) and `make core` (Brain).
+3.  **Access UI**: http://localhost:5173
+
+### Option B: Full Cluster Deployment
+Run everything inside Kubernetes.
+1.  **Build & Load Images**: `make load-images`
+2.  **Deploy Stack**: `make cluster-up`
+3.  **Access UI**: http://localhost:30080 (via NodePort)
+
+## 6. Access & Observation
+- **Mission Control (UI)**:
+    - Hybrid: http://localhost:5173
+    - Cluster: http://localhost:30080
+- **Grafana**: http://localhost:3000 (Monitoring)
+
+# 7. LLM Configuration (Optional)
 # Defaults:
 # LLM_ENDPOINT=http://localhost:11434/v1
 # LLM_MODEL=qwen2.5-coder:7b-instruct

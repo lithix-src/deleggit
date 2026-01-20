@@ -41,8 +41,8 @@ func (a *LiaisonAgent) Type() domain.AgentType {
 }
 
 func (a *LiaisonAgent) Execute(ctx context.Context, input domain.CloudEvent) (*domain.CloudEvent, error) {
-	// Trigger: "agent.{id}.wake" from GroupChatManager
-	if input.Type != fmt.Sprintf("agent.%s.wake", a.id) {
+	// Trigger: "agent/{id}/wake" from GroupChatManager
+	if input.Type != fmt.Sprintf("agent/%s/wake", a.id) {
 		return nil, nil
 	}
 

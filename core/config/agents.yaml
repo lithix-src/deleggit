@@ -67,5 +67,5 @@ missions:
 
   - id: "mission-chat"
     name: "ChatOps Liaison"
-    trigger_topic: "agent.liaison.wake"
+    trigger_topic: "agent/Liaison/wake"
     agents: ["Liaison"]

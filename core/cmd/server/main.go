@@ -146,6 +146,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Route Agent Inter-comms to Mission Manager
+	err = mqttClient.Subscribe("agent/#", func(event domain.CloudEvent) {
+		Log.Info("Agent Event Received", "type", event.Type, "source", event.Source)
+		missionMgr.ProcessEvent(event)
+	})
+	if err != nil {
+		Log.Error("Failed to subscribe to agent events", "error", err)
+		os.Exit(1)
+	}
+
 	// Route Repo Events (Indexing)
 	err = mqttClient.Subscribe("repo/#", func(event domain.CloudEvent) {
 		if event.Type == "repo.content" {
