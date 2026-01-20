@@ -1,7 +1,7 @@
 # Catalyst Development Makefile
 # Standardized workflow for local development
 
-.PHONY: dev clean ui mock install help core test
+.PHONY: dev clean ui mock install help core test cluster-up cluster-down cluster-destroy prune deep-clean
 
 help:
 	@echo "Catalyst Dev Environment"
@@ -13,9 +13,14 @@ help:
 	@echo "  make test     - Run all Core Unit Tests"
 	@echo "  make install  - Install all dependencies"
 	@echo "  --- Infrastructure ---"
-	@echo "  make cluster-up   - Spin up Kind K8s Cluster (DB + Broker)"
-	@echo "  make cluster-down - Delete Kind Cluster"
-	@echo "  make prune        - Aggressive Docker Cleanup"
+	@echo "  make cluster-up      - Spin up Kind K8s Cluster (DB + Broker)"
+	@echo "  make cluster-down    - Uninstall Helm Chart (Keep Cluster)"
+	@echo "  make cluster-destroy - Delete Kind Cluster (Reclaim Resources)"
+	@echo "  make prune           - Aggressive Docker Cleanup"
+	@echo "  make deep-clean      - Nuke everything (Local + Cluster + Docker)"
+
+# Nuke everything
+deep-clean: clean cluster-destroy prune
 
 # Install dependencies (One-time setup)
 install:
@@ -88,6 +93,10 @@ cluster-up:
 cluster-down:
 	helm uninstall catalyst -n catalyst-local
 
+# Destroy Kind Cluster (Reclaim Resources)
+cluster-destroy:
+	kind delete cluster --name catalyst-local
+
 build-images:
 	docker build -t catalyst/core:latest -f core/Dockerfile .
 	docker build -t catalyst/ui:latest -f ui/Dockerfile ui
@@ -98,4 +107,5 @@ load-images: build-images
 
 # Aggressive Docker Cleanup (Save Disk Space)
 prune:
+	docker system prune -af --volumes
 
