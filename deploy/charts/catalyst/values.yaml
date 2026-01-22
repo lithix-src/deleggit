@@ -5,7 +5,7 @@ global:
 
 # Core Service (The Brain)
 core:
-  enabled: false
+  enabled: true
   image: catalyst/core:latest
   replicas: 1
   env:

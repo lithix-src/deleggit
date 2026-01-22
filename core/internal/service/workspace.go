@@ -19,6 +19,11 @@ type WorkspaceManager struct {
 }
 
 func NewWorkspaceManager(store *store.PostgresStore, rootPath string) *WorkspaceManager {
+	// Check for env var override
+	if envRoot := os.Getenv("WORKSPACE_ROOT"); envRoot != "" {
+		rootPath = envRoot
+	}
+
 	abs, err := filepath.Abs(rootPath)
 	if err != nil {
 		abs = rootPath
@@ -41,8 +46,9 @@ func (w *WorkspaceManager) SwitchContext(ctx context.Context, repoID, branch str
 		return fmt.Errorf("repo not found: %w", err)
 	}
 
-	// 2. Resolve Path (d:\Datacraft\<RepoName>)
-	targetPath := filepath.Join(w.root, name)
+	// 2. Resolve Path (/workspace/projects/<org>/<name>)
+	// If root is /workspace, path is /workspace/projects/org/name
+	targetPath := filepath.Join(w.root, "projects", org, name)
 
 	// 3. Verify Existence
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
@@ -79,11 +85,12 @@ func (w *WorkspaceManager) GetActiveRepoPath(ctx context.Context) (string, error
 		return "", fmt.Errorf("failed to get active context: %w", err)
 	}
 
-	var name string
-	err = w.store.Pool().QueryRow(ctx, "SELECT name FROM repos WHERE id = $1", activeRepoID).Scan(&name)
+	var name, org string
+	// We need 'org' now too
+	err = w.store.Pool().QueryRow(ctx, "SELECT name, org FROM repos WHERE id = $1", activeRepoID).Scan(&name, &org)
 	if err != nil {
 		return "", fmt.Errorf("failed to get repo details: %w", err)
 	}
 
-	return filepath.Join(w.root, name), nil
+	return filepath.Join(w.root, "projects", org, name), nil
 }

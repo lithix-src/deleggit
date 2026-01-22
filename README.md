@@ -18,15 +18,16 @@
 - **[K8s Isolation ADR](docs/adr-001-k8s-isolation.md)**: Decision record for Zero Trust Architecture.
 
 ## 🌍 Global Architecture State
-**Current Phase:** "Phase 5: Swarm Intelligence & refined UI"
+**Current Phase:** "Phase 6: Infrastructure & Enterprise Safety"
 **Status:** 🚀 Active Testing | Localhost:5173 | Agents Listening | K8s Active
-**Last Snapshot:** 2026-01-21 (Cluster + Dev Stack Managed)
+**Last Snapshot:** 2026-01-21 (Storage + Security Enabled)
 
 ### 🚀 Current Capabilities
-- **Frontend**: **Hybrid Light/Dark Theme** ("SaaS Professional") with Real-Time Telemetry.
-- **Backend**: Fully Containerized Go Architecture (Hexagonal) with RAG-enabled "Vibe Engine".
+- **Frontend**: **Hybrid Light/Dark Theme** with Real-Time Telemetry & Agent Grid.
+- **Backend**: Fully Containerized Go Orchestrator with RAG-enabled "Vibe Engine".
 - **Infrastructure**: "Zero Trust Local" via standard Kind Kubernetes cluster.
-- **Workflow**: Automated `Makefile` standards for Rapid/Hybrid development.
+- **Security**: **GitGuard** active - ensuring Context-Aware Agent Execution.
+- **Storage**: Persistent 1GB Worksheet volume for structured project code (`/workspace`).
 
 ### 🏗️ Design Reference (The "Architecture Constraint")
 All functional components MUST adhere to this topology:
@@ -41,10 +42,12 @@ graph TD
 
     subgraph "Catalyst Runtime (Event Bus)"
         Broker[Mosquitto MQTT]
+        Core["Core Orchestrator"]
+        Storage[("Persistent Storage (PVC)")]
     end
 
     subgraph "Platform Dashboard (UI Layer)"
-        Sidebar[Nav: Dashboard/Workflows/Hardware]
+        Sidebar[Nav: Dashboard/Agents/Hardware]
         Widgets[Grid: Sensors/Logs/Events]
     end
 
@@ -53,6 +56,8 @@ graph TD
     Agents -->|agent/+/log| Broker
     
     Broker -->|WebSockets| Widgets
+    Core -->|Mount| Storage
+    Core -->|Manage| Agents
 ```
 
 ---
@@ -71,7 +76,9 @@ We utilize a virtual "Swarm" of specialized agent personas to execute this proje
 *   **Role**: Core Systems Engineering.
 *   **Mission**: Build a fault-tolerant, high-concurrency event bus and orchestrator.
 *   **Tech Stack**: Go (Golang), Eclipse Mosquitto (MQTT), PostgreSQL (Persistence).
-*   **Directives**: "The Event Bus is the source of truth."
+*   **Features**:
+    *   **Context Resolver**: Dynamically maps Active Repo ID to physical disk path (`/workspace/projects/<org>/<repo>`).
+    *   **GitGuard**: Prevents agents from accessing files outside the active safety context.
 
 ### 3. `Infrastructure` (DevOps & Site Reliability)
 *   **Role**: Infrastructure-as-Code (IaC) & K8s.
@@ -81,25 +88,10 @@ We utilize a virtual "Swarm" of specialized agent personas to execute this proje
 ### 4. `Simulation` (Data Generation)
 *   **Role**: Chaos Engineering.
 *   **Mission**: Emulate hardware sensors and swarm activity for development (`device-mock`).
-*   **Status**: Active (Emitting `agent/+/log` and `sensor/cpu/temp`).
 
 ### 5. `Watcher` (Repository Monitor)
 *   **Role**: Source Control Intelligence.
 *   **Mission**: Poll GitHub repositories for Pull Requests, Issues, and Pushes.
-*   **Features**:
-    *   **Smart Polling**: Stateful Change Detection (No polling spam).
-    *   **Rich Events**: Distinguishes between `repo.push`, `repo.pr`, and `repo.issue`.
-### 6. `Liaison` (Head of Communications)
-*   **Role**: Human-Swarm Interface.
-*   **Mission**: Interpret natural language intent and execute tool calls.
-*   **Capabilities**: `git_create_issue`, `pipeline.run`.
-*   **Status**: Active (`core` internal agent).
-
-### 7. `PipelineArchitect` (CI/CD Specialist)
-*   **Role**: Pipeline Engineering.
-*   **Mission**: Create, Manage, and Execute GitHub Workflows.
-*   **Capabilities**: `pipeline.list`, `pipeline.read`, `pipeline.save`, `pipeline.run`.
-*   **Status**: Active (`core` internal agent).
 
 ---
 
@@ -112,23 +104,19 @@ The `catalyst-core` service is the central nervous system, built on a **Hexagona
     *   **EventBus**: [x] MQTT Client (Paho) Connected.
     *   **Store**: [x] Postgres Persistence (pgvector ready).
     *   **LLM**: [x] OpenAI/Ollama Adapter (RAG Integration).
+    *   **Workspace**: [x] Local Filesystem with `ContextResolver`.
 *   **Service Layer** (`internal/service`):
     *   **MissionManager**: [x] Routing Logic Verified.
     *   **AgentRegistry**: [x] Plugin Loading (Concurrency Safe).
-    *   **GroupChatManager**: [x] Conversational Orchestrator.
-    *   **VibeEngine**: [x] Vector Recall & Code Indexing.
+    *   **WorkspaceManager**: [x] Structured Storage (`/workspace/<org>/<name>`).
 *   **Shared SDK** (`pkg/`):
     *   **CloudEvent**: Unified Data Protocol.
-    *   **Logger**: Standardized JSON Logging.
-    *   **MCP**: Catalyst Tool Protocol (Model Context Protocol).
     *   **Vector**: Embeddings & Similarity Search.
 
 ### 2. The Hive Mind (Agent Swarm)
 We utilize a virtual "Hive Mind" of specialized agent personas:
 *   **SystemArchitect**: Governance & OrgPolicy Enforcement (Read-Only).
 *   **SoftwareEngineer**: Vibe Coding & Feature Implementation (R/W).
-*   **PipelineArchitect**: CI/CD & Workflow Management.
-*   **InfrastructureManager**: K8s & Helm Operations.
 *   **Liaison**: Human-Swarm Interface (ChatOps).
 
 ---
@@ -139,7 +127,7 @@ Catalyst is architected for **Zero Trust Local** execution.
 
 *   **Isolation**: Services run in strictly isolated containers (Docker).
 *   **Ingress Control**: No direct port exposure. Traffic flows through a Reverse Proxy.
-*   **Least Privilege**: Strict ACLs on the MQTT Broker.
+*   **Persistence**: Dedicated `1GB` Persistent Volume Claim for Project Code, mounted at `/workspace`.
 
 ### 🛠️ Development Workflow
 We adhere to a standardized `Makefile` workflow.
@@ -154,7 +142,7 @@ make install
 make sdk-check
 
 # 3. Start Infrastructure (K8s + Helm)
-# Deploys Postgres (pgvector), Mosquitto, and Observability
+# Deploys Postgres (pgvector), Mosquitto, Storage, and Observability
 make cluster-up 
 
 # 4. Start Application Stack (Localhost)
@@ -162,8 +150,9 @@ make cluster-up
 make dev
 
 # 5. Infrastructure Management
-make cluster-up   # Start Kind Cluster (DB/Broker)
+make cluster-up   # Start Kind Cluster
 make cluster-down # Destroy Cluster
+```
 
 ### Option A: Hybrid Development (Recommended)
 Run infrastructure in Kubernetes, but application code locally for fast iteration.

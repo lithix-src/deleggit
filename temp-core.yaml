@@ -1,11 +1,26 @@
-{{- if .Values.core.enabled }}
+---
+# Source: catalyst/templates/core.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalyst-core-service
+  namespace: catalyst-local
+spec:
+  selector:
+    app: catalyst-core
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+# Source: catalyst/templates/core.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: catalyst-core
-  namespace: {{ .Values.global.namespace }}
+  namespace: catalyst-local
 spec:
-  replicas: {{ .Values.core.replicas }}
+  replicas: 1
   selector:
     matchLabels:
       app: catalyst-core
@@ -16,13 +31,13 @@ spec:
     spec:
       containers:
         - name: core
-          image: {{ .Values.core.image }}
+          image: catalyst/core:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: BROKER_URL
-              value: {{ .Values.core.env.BROKER_URL }}
+              value: tcp://catalyst-broker-service:1883
             - name: DATABASE_URL
-              value: {{ .Values.core.env.DATABASE_URL }}
+              value: postgres://catalyst:devpassword@catalyst-db-service:5432/catalyst_core
             - name: LLM_ENDPOINT
               value: "http://host.docker.internal:11434/v1" # Localhost LLM access from container
             - name: WORKSPACE_ROOT
@@ -39,17 +54,3 @@ spec:
         - name: workspace-storage
           persistentVolumeClaim:
             claimName: catalyst-workspace
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: catalyst-core-service
-  namespace: {{ .Values.global.namespace }}
-spec:
-  selector:
-    app: catalyst-core
-  ports:
-    - protocol: TCP
-      port: 8080
-      targetPort: 8080
-{{- end }}
