@@ -11,6 +11,7 @@ import (
 	"github.com/datacraft/catalyst/core/internal/adapter/llm"
 	"github.com/datacraft/catalyst/core/internal/adapter/mqtt"
 	"github.com/datacraft/catalyst/core/internal/adapter/store"
+	"github.com/datacraft/catalyst/core/internal/adapter/web"
 	"github.com/datacraft/catalyst/core/internal/domain"
 	"github.com/datacraft/catalyst/core/internal/service"
 	"github.com/point-unknown/catalyst/pkg/env"
@@ -39,8 +40,14 @@ func main() {
 
 	// 1.5 Data Store (PostgreSQL)
 	// User NodePort 30000 -> 5432
+	// User NodePort 30000 -> 5432
 	connStr := env.Get("DATABASE_URL", "postgres://catalyst:devpassword@localhost:5432/catalyst_core")
 	pgStore, err := store.NewPostgresStore(connStr)
+
+	// Prepare Workspace Manager (initialized only if store is OK)
+	var workspaceMgr *service.WorkspaceManager
+	var webServer *web.Server
+
 	if err != nil {
 		Log.Warn("⚠️ [STORE] Failed to connect to Postgres (is K8s up?)", "error", err)
 	} else {
@@ -50,6 +57,19 @@ func main() {
 			Log.Error("Failed to init schema", "error", err)
 			os.Exit(1)
 		}
+
+		// 1.5.1 Initialize Workspace Manager (Context Resolver)
+		// Workspace Root is parent of current dir (d:\Datacraft\Catalyst -> d:\Datacraft)
+		workspaceMgr = service.NewWorkspaceManager(pgStore, "..")
+
+		// 1.5.2 Start HTTP API (Web Adapter)
+		webServer = web.NewServer(pgStore, workspaceMgr)
+		go func() {
+			apiAddr := env.Get("API_ADDR", ":8080") // Default port 8080
+			if err := webServer.Run(apiAddr); err != nil {
+				Log.Error("HTTP API Failed", "error", err)
+			}
+		}()
 	}
 
 	// 1.6 LLM Provider (The "Brain")
@@ -88,8 +108,9 @@ func main() {
 	// B. Register Standard Agents (Dynamic Loader)
 	configFile := env.Get("CATALYST_CONFIG_PATH", "config/agents.yaml")
 
-	// Pass vector store to loader
-	loadedAgents, loadedMissions, err := service.LoadAgents(configFile, llmProvider, registry, pgStore.Vector)
+	// Pass vector store and workspace manager (as resolver) to loader
+	// If workspaceMgr is nil (store failed), agents relying on it will likely fail or fallback safely
+	loadedAgents, loadedMissions, err := service.LoadAgents(configFile, llmProvider, registry, pgStore.Vector, workspaceMgr)
 	if err != nil {
 		Log.Warn("⚠️ [LOADER] Failed to load agents.yaml. Running without agents.", "error", err)
 	} else {

@@ -87,6 +87,7 @@ test:
 
 # Spin up Local Kubernetes Cluster (Postgres + Mosquitto + Observability)
 cluster-up:
+	-kind create cluster --name catalyst-local
 	helm install catalyst ./deploy/charts/catalyst -n catalyst-local --create-namespace
 
 # Tear down Cluster

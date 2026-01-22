@@ -5,6 +5,7 @@ import { ActiveAgents } from "../features/dashboard/ActiveAgents";
 import { ContainerGrid } from "../features/dashboard/ContainerGrid";
 import { GenericSensorGrid } from "../features/dashboard/GenericSensorGrid";
 import { RepoFeed } from "../features/dashboard/RepoFeed";
+import { AgentSwarmGrid } from "../features/agents/AgentSwarmGrid";
 
 export function AdminPage() {
     const [currentView, setCurrentView] = useState("dashboard");
@@ -15,9 +16,18 @@ export function AdminPage() {
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 <header className="border-b border-slate-200 bg-white/80 backdrop-blur h-14 shrink-0 px-6 flex items-center justify-between">
-                    <div className="flex items-center gap-2 md:hidden">
-                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
-                        <h1 className="font-bold tracking-tight text-lg">CATALYST ADMIN</h1>
+                    <div className="flex items-center gap-4">
+                        <a href="/" className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors group">
+                            <div className="p-1 rounded-md group-hover:bg-indigo-50">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+                            </div>
+                            <span className="text-sm font-medium hidden md:block">Mission Control</span>
+                        </a>
+                        <div className="h-6 w-px bg-slate-200 hidden md:block" />
+                        <div className="flex items-center gap-2 md:hidden">
+                            <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
+                            <h1 className="font-bold tracking-tight text-lg">CATALYST ADMIN</h1>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-4 ml-auto">
@@ -78,7 +88,14 @@ export function AdminPage() {
                         )}
 
                         {/* Fallback for others */}
-                        {(currentView === "agents" || currentView === "settings") && (
+                        {currentView === "agents" && (
+                            <div>
+                                <h2 className="text-xl font-mono text-slate-500 mb-4 uppercase">Agents Management</h2>
+                                <AgentSwarmGrid />
+                            </div>
+                        )}
+
+                        {currentView === "settings" && (
                             <div className="flex items-center justify-center h-[500px] border border-dashed border-slate-300 rounded bg-slate-50">
                                 <div className="text-center">
                                     <h2 className="text-xl font-mono text-slate-500 mb-2 uppercase">{currentView}</h2>

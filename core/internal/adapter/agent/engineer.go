@@ -57,6 +57,10 @@ func (a *EngineerAgent) Execute(ctx context.Context, input domain.CloudEvent) (*
 	// In reality this comes from 'input.Data'
 	issueContext := fmt.Sprintf("Analyze input: %v", input.Data)
 
+	// Example of using workspace (reading related files)
+	// names, _ := a.workspace.List(ctx, ".")
+	// log.Printf("Files in root: %v", names)
+
 	plan, err := a.llm.GenerateCode(ctx, "Create a fix plan for: "+issueContext)
 	if err != nil {
 		log.Printf("[ENGINEER:%s] Brain Freeze: %v", a.id, err)
