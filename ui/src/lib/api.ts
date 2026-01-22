@@ -10,6 +10,7 @@ export interface Context {
     active_branch: string;
     org: string;
     name: string;
+    local_path?: string;
 }
 
 export interface Agent {

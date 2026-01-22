@@ -149,8 +149,10 @@ export function MissionPage() {
                             <Brain className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Environment</p>
-                            <p className="text-sm font-semibold text-slate-800">Local Development</p>
+                            <p className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Workspace Path</p>
+                            <p className="text-xs font-mono text-slate-700 truncate max-w-[200px]" title={context?.local_path || "Local"}>
+                                {context?.local_path || "Local Development"}
+                            </p>
                         </div>
                     </div>
                 </div>

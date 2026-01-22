@@ -147,12 +147,16 @@ func (s *Server) handleContext(w http.ResponseWriter, r *http.Request) {
 		var org, name string
 		err = s.store.Pool().QueryRow(ctx, "SELECT org, name FROM repos WHERE id = $1", activeRepoID).Scan(&org, &name)
 
+		// Resolve Local Path
+		localPath, _ := s.workspace.GetActiveRepoPath(ctx)
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"active_repo_id": activeRepoID,
 			"active_branch":  activeBranch,
 			"org":            org,
 			"name":           name,
+			"local_path":     localPath,
 		})
 		return
 	}
