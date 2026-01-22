@@ -19,14 +19,16 @@
 
 ## 🌍 Global Architecture State
 **Current Phase:** "Phase 6: Infrastructure & Enterprise Safety"
-**Status:** 🚀 Active Testing | Localhost:5173 | Agents Listening | K8s Active
-**Last Snapshot:** 2026-01-21 (Storage + Security Enabled)
+**Status:** 🚀 Active Testing | UI: localhost:5173 | Core: localhost:8080 | K8s Active
+**Last Snapshot:** 2026-01-21 (GitGuard + Workspace Sync Active)
 
 ### 🚀 Current Capabilities
 - **Frontend**: **Hybrid Light/Dark Theme** with Real-Time Telemetry & Agent Grid.
 - **Backend**: Fully Containerized Go Orchestrator with RAG-enabled "Vibe Engine".
 - **Infrastructure**: "Zero Trust Local" via standard Kind Kubernetes cluster.
 - **Security**: **GitGuard** active - ensuring Context-Aware Agent Execution.
+  - **Context Resolver**: Dynamically maps Active Repo to `/workspace/projects/<org>/<repo>`.
+  - **Workspace Sync**: Frontend HUD visualizes the active physical path on disk.
 - **Storage**: Persistent 1GB Worksheet volume for structured project code (`/workspace`).
 
 ### 🏗️ Design Reference (The "Architecture Constraint")
@@ -146,7 +148,7 @@ make sdk-check
 make cluster-up 
 
 # 4. Start Application Stack (Localhost)
-# Launches UI (localhost:5173), Core Service, Device Mock, and Repo Watcher
+# Launches UI (localhost:5173), Core Service (localhost:8080), Device Mock, and Repo Watcher
 make dev
 
 # 5. Infrastructure Management
